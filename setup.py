@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="flamapy",
-    version="2.0.0.dev0",
+    version="2.0.0.dev1",
     author="Flamapy",
     author_email="flamapy@us.es",
     description="Flamapy feature model is a distribution of the flama framework containing all plugins required to analyze feature models. It also offers a richier API and a complete command line interface and documentation.",
@@ -23,9 +23,10 @@ setuptools.setup(
     python_requires='>=3.9',
     install_requires=[
         "wheel",
-        "flamapy-fw~=2.0.0.dev0",
-        "flamapy-fm~=2.0.0.dev0",
-        "flamapy-sat~=2.0.0.dev0",    
+        "flamapy-fw~=2.0.0.dev1",
+        "flamapy-fm~=2.0.0.dev1",
+        "flamapy-sat~=2.0.0.dev1",   
+        "flamapy-bdd~=2.0.0.dev1",    
     ],
     extras_require={
         'dev': [

@@ -204,14 +204,14 @@ def test_valid_model_operation(setup_model, expected_output):
     assert result == expected_output, f"The result {result} does not match the expected output {expected_output}"
 
 @pytest.mark.parametrize("setup_model, expected_output, configuration", [
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("C"):True}) ),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({Feature("E"):True,Feature("F"):False})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("E"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("E"):False,Feature("F"):False}) ),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("D"):False,Feature("G"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({Feature("D"):True,Feature("G"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("D"):True,Feature("G"):False})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({Feature("B"):False})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"A":True,"B":True,"C":True}) ),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({"E":True,"F":False})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"E":True,"F":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"E":False,"F":False}) ),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"D":False,"G":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({"D":True,"G":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"D":True,"G":False})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({"B":False})),
 ], indirect=["setup_model"])
 def test_valid_configuration_operation(setup_model, expected_output, configuration):
     model = setup_model
@@ -223,13 +223,13 @@ def test_valid_configuration_operation(setup_model, expected_output, configurati
     assert result == expected_output, f"The result {result} does not match the expected output {expected_output}"
 
 @pytest.mark.parametrize("setup_model, expected_output, configuration", [
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("E"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True,Feature("G"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({Feature("A"):True,Feature("B"):True,Feature("E"):True,Feature("C"):True,Feature("F"):True,Feature("D"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({Feature("A"):True,Feature("B"):True,Feature("E"):True,Feature("C"):True,Feature("F"):True,Feature("G"):True,Feature("D"):True})),
-    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("E"):True,Feature("C"):True,Feature("F"):True,Feature("G"):True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"A":True,"B":True,"D":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"A":True,"B":True,"E":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True,"G":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({"A":True,"B":True,"E":True,"C":True,"F":True,"D":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", False, Configuration({"A":True,"B":True,"E":True,"C":True,"F":True,"G":True,"D":True})),
+    ("./resources/models/fama_test_suite/relationships/allrelationships/allrelationships.xml", True, Configuration({"A":True,"B":True,"E":True,"C":True,"F":True,"G":True})),
 ], indirect=["setup_model"])
 def test_valid_product_operation(setup_model, expected_output, configuration):
     model = setup_model
@@ -242,14 +242,14 @@ def test_valid_product_operation(setup_model, expected_output, configuration):
 
 '''
 @pytest.mark.parametrize("setup_model, expected_output", [
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case1/df-case1.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True})),
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case2/df-case2.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case3/df-case3.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case4/df-case4.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case5/df-case5.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case6/df-case6.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case7/df-case7.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
-    ("./resources/models/fama_test_suite/error-guessing/dead-features/case8/df-case8.xml", True, Configuration({Feature("A"):True,Feature("B"):True,Feature("D"):True,Feature("C"):True,Feature("F"):True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case1/df-case1.xml", True, Configuration({"A":True,"B":True,"D":True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case2/df-case2.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case3/df-case3.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case4/df-case4.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case5/df-case5.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case6/df-case6.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case7/df-case7.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
+    ("./resources/models/fama_test_suite/error-guessing/dead-features/case8/df-case8.xml", True, Configuration({"A":True,"B":True,"D":True,"C":True,"F":True})),
    ], indirect=["setup_model"])
 def test_valid_product_operation(setup_model, expected_output):
     model = setup_model
