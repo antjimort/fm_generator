@@ -30,6 +30,8 @@ FLAMAPY Feature model distribution provides an easier way of using FLAMA when an
 
 Feature Model Analysis has a crucial role in software product line engineering, enabling us to understand, design, and validate the complex relationships among features in a software product line. These feature models can often be complex and challenging to analyze due to their variability, making it difficult to identify conflicts, dead features, and potential optimizations. This is where this distribution comes in.
 
+# Soon comming, easy to use CMD
+## TODO
 
 # Using the Python interface
 This is simple, Flama FM dist in hosted in pypi, therefore simply add the package flama-fm-dist to your requirements file and call the API as follows:
