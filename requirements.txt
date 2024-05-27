@@ -1,0 +1,12 @@
+wheel
+Flask
+gunicorn
+flamapy
+flamapy-fm
+flamapy-sat
+flask-swagger-ui
+flask-restplus
+pytest
+flask_cors
+flasgger
+Fire
