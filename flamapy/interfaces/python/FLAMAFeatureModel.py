@@ -4,17 +4,17 @@ from typing import Optional
 
 class FLAMAFeatureModel():
 
-    def __init__(self, modelPath:str, configurationPath:Optional[str]=None):
+    def __init__(self, model_path:str, configuration_path:Optional[str]=None):
         """
         This is the path in the filesystem where the model is located. 
         Any model in UVL, FaMaXML or FeatureIDE format are accepted
         """
-        self.modelPath=modelPath
+        self.model_path=model_path
         """
         This is the path in the filesystem where the configuration is located. 
         Only CSV format are accepted (see documentation for more information)
         """
-        self.modelPath=configurationPath
+        self.configuration_path=configuration_path
         """
         Creating the interface witht he flama framework
         """
@@ -22,19 +22,25 @@ class FLAMAFeatureModel():
         """
         We save the model for later ussage
         """
-        self.fm_model=self._read(modelPath)
+        self.fm_model=self._read(model_path)
         """
-        We create a empty sat model to avoid double transformations
+        We create a empty sat model and a bdd model to avoid double transformations
         """
         self.sat_model=None
-        
-    def _read(self, modelPath)->FeatureModel:
-        return self.dm.use_transformation_t2m(modelPath,'fm')
+        self.bdd_model=None
+
+
+    def _read(self, model_path)->FeatureModel:
+        return self.dm.use_transformation_t2m(model_path,'fm')
     
     def _transform_to_sat(self):
-        if self.sat_model == None:
+        if self.sat_model is None:
             self.sat_model=self.dm.use_transformation_m2m(self.fm_model,"pysat")
-            
+    
+    def _transform_to_bdd(self):
+        if self.bdd_model is None:
+            self.bdd_model=self.dm.use_transformation_m2m(self.fm_model,"bdd")
+
     def atomic_sets(self):
         """ 
         This operation is used to find the atomic sets in a model:
@@ -207,26 +213,6 @@ class FLAMAFeatureModel():
             return None
 
 
-    def error_detection(self):
-        """
-        This refers to the process of identifying and locating errors in a feature model. 
-        Errors can include things like dead features, false optional features, or 
-        contradictions in the constraints.
-        """
-        try:
-            self._transform_to_sat()
-            #errors = self.dm.use_operation(self.sat_model,'Glucose3ErrorDetection').get_result()
-
-            operation = self.dm.get_operation(self.sat_model,'PySATErrorDetection')
-            operation.feature_model=self.fm_model
-            operation.execute(self.sat_model)
-            result = operation.get_result()
-            return result
-        except Exception as e:
-            print(f"Error: {e}")
-            return None
-
-
     def false_optional_features(self):
         """
         These are features that appear to be optional in the feature model, but due to the 
@@ -272,8 +258,8 @@ class FLAMAFeatureModel():
         the constraints and dependencies between features.
         """
         try:
-            self._transform_to_sat()
-            nop = self.dm.use_operation(self.sat_model,'PySATConfigurationsNumber').get_result()
+            self._transform_to_bdd()
+            nop = self.dm.use_operation(self.bdd_model,'BDDConfigurationsNumber').get_result()
             return nop
         except Exception as e:
             print(f"Error: {e}")
@@ -287,8 +273,8 @@ class FLAMAFeatureModel():
         feature model.
         """
         try:
-            self._transform_to_sat()
-            products = self.dm.use_operation(self.sat_model,'PySATConfigurations').get_result()
+            self._transform_to_bdd()
+            products = self.dm.use_operation(self.bdd_model,'BDDConfigurations').get_result()
             return products
         except Exception as e:
             print(f"Error: {e}")

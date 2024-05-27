@@ -98,15 +98,6 @@ def test_dead_features():
     # Assert
     assert sorted(result) == sorted([])
  
-def test_error_detection():
-    # Prepare
-    flamafm=FLAMAFeatureModel(NON_VALID_MODEL)
-    
-    # Act
-    result = flamafm.error_detection()
-
-    # Assert
-    assert len(result) == 3
 
 def test_false_optional_features():
     # Prepare
