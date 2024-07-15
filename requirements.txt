@@ -1,12 +1,5 @@
 wheel
-Flask
-gunicorn
-flamapy
-flamapy-fm
-flamapy-sat
-flask-swagger-ui
-flask-restplus
-pytest
-flask_cors
-flasgger
-Fire
+flamapy-fw==2.0.0.dev2
+flamapy-fm==2.0.0.dev2
+flamapy-sat==2.0.0.dev2
+flamapy-bdd==2.0.0.dev2

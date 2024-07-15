@@ -251,30 +251,41 @@ class FLAMAFeatureModel():
             return None
 
 
-    def configurations_number(self):
+    def configurations_number(self, with_sat:bool=False):
         """
         This is the total number of different full configurations that can be produced from a feature model. 
         It's calculated by considering all possible combinations of features, taking into account 
         the constraints and dependencies between features.
         """
         try:
-            self._transform_to_bdd()
-            nop = self.dm.use_operation(self.bdd_model,'BDDConfigurationsNumber').get_result()
+            nop=0
+            if with_sat:
+                self._transform_to_sat()
+                nop = self.dm.use_operation(self.sat_model,'PySATConfigurationsNumber').get_result()
+                
+            else:
+                self._transform_to_bdd()
+                nop = self.dm.use_operation(self.bdd_model,'BDDConfigurationsNumber').get_result()
             return nop
         except Exception as e:
             print(f"Error: {e}")
             return None
 
 
-    def configurations(self):
+    def configurations(self, with_sat:bool=False):
         """
         These are the individual outcomes that can be produced from a feature model. Each product 
         is a combination of features that satisfies all the constraints and dependencies in the 
         feature model.
         """
         try:
-            self._transform_to_bdd()
-            products = self.dm.use_operation(self.bdd_model,'BDDConfigurations').get_result()
+            products=[]
+            if with_sat:
+                self._transform_to_sat()
+                products = self.dm.use_operation(self.sat_model,'PySATConfigurations').get_result()
+            else:
+                self._transform_to_bdd()
+                products = self.dm.use_operation(self.bdd_model,'BDDConfigurations').get_result()
             return products
         except Exception as e:
             print(f"Error: {e}")
