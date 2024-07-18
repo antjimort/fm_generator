@@ -296,7 +296,7 @@ class FLAMAFeatureModel():
         """
         This is a measure of how often a feature appears in the products of a 
         product line. It's usually expressed as a percentage. A feature with 
-        100% commonality is a core feature, as it appears in all products.
+        100 per cent commonality is a core feature, as it appears in all products.
         """
         try:
             self._transform_to_sat()
