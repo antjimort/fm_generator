@@ -9,12 +9,12 @@ class FLAMAFeatureModel():
         This is the path in the filesystem where the model is located. 
         Any model in UVL, FaMaXML or FeatureIDE format are accepted
         """
-        self.model_path=model_path
+        self.model_path = model_path
         """
         This is the path in the filesystem where the configuration is located. 
         Only CSV format are accepted (see documentation for more information)
         """
-        self.configuration_path=configuration_path
+        self.configuration_path = configuration_path
         """
         Creating the interface witht he flama framework
         """
@@ -22,12 +22,12 @@ class FLAMAFeatureModel():
         """
         We save the model for later ussage
         """
-        self.fm_model=self._read(model_path)
+        self.fm_model = self._read(model_path)
         """
         We create a empty sat model and a bdd model to avoid double transformations
         """
-        self.sat_model=None
-        self.bdd_model=None
+        self.sat_model = None
+        self.bdd_model = None
 
 
     def _read(self, model_path)->FeatureModel:

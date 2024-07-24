@@ -1,8 +1,27 @@
 #!/usr/bin/python
 import argparse
+import os
+import sys
 from functools import wraps
 import inspect
+from pathlib import Path
+from shutil import copytree
 from flamapy.interfaces.python.FLAMAFeatureModel import FLAMAFeatureModel
+# List to store registered commands and their arguments
+MANUAL_COMMANDS = []
+
+
+def command(name, description, *args):
+
+    def decorator(func):
+        MANUAL_COMMANDS.append((name, description, func, args))
+        
+        @wraps(func)
+        def wrapper(*func_args, **func_kwargs):
+            return func(*func_args, **func_kwargs)
+        return wrapper
+    return decorator
+
 
 def extract_commands(cls):
     commands = []
@@ -15,6 +34,53 @@ def extract_commands(cls):
         parameters = list(signature.parameters.values())[1:]  # Skip 'self'
         commands.append((name, docstring, method, parameters))
     return commands
+
+
+@command('generate_plugin', 'This command generates a new plugin to implement your cusom operations. \
+         To execute it you should set yourself in the path of the flamapy src directory', 
+         ('name', str, 'The pluggins name'),
+         ('extension', str, 'The extansion to be registered with the flamapy ecosystem'),
+         ('path', str, 'The path to generate it'))
+def generate_plugin(args):
+    name = args.name
+    ext = args.extension
+    dst = args.path
+    src = 'skel_metamodel/'
+
+    # Check DST exist
+    if not os.path.isdir(dst):
+        print(f"Folder {dst} not exist")
+        sys.exit()
+
+    # Check DST is empty
+    if len(os.listdir(dst)) != 0:
+        print(f"Folder {dst} is not empty")
+        sys.exit()
+
+    # Check DST has permissions to WRITE
+    if not os.access(dst, os.W_OK):
+        print(f"Folder {dst} has not write permissions")
+        sys.exit()
+
+    # Generating structure
+    print("Generating structure ...")
+
+    copy_files = copytree(src, dst, dirs_exist_ok=True)
+
+    for copy_file in Path(copy_files).glob('**/*'):
+        if copy_file.is_dir():
+            continue
+        with open(copy_file, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+        with open(copy_file, "w", encoding="utf-8") as filewrite:
+            for line in lines:
+                out_line = line.replace('__NAME__', name.capitalize()).replace('__EXT__', ext)
+                filewrite.write(out_line)
+
+    os.rename(os.path.join(dst, 'flamapy/metamodels/__NAME__'),
+              os.path.join(dst, f'flamapy/metamodels/{name}'))
+    print("Plugin generated!")
+
 
 def flamapy_cli() -> None:
     parser = argparse.ArgumentParser(description='FLAMA Feature Model CLI')
@@ -42,22 +108,41 @@ def flamapy_cli() -> None:
                     subparser.add_argument(f'--{arg_name}', type=param.annotation, default=param.default, help=f'Optional {param.annotation.__name__}')
         subparser.set_defaults(func=method, method_name=name, parameters=parameters)
 
+    # Add manually registered commands
+    for name, description, func, args in MANUAL_COMMANDS:
+        subparser = subparsers.add_parser(name, help=description)
+        for arg in args:
+            arg_name, arg_type, arg_help = arg
+            subparser.add_argument(arg_name, type=arg_type, help=arg_help)
+        subparser.set_defaults(func=func)
+
     args = parser.parse_args()
 
     if args.command:
         try:
-            # Instantiate the class with the required parameters for each command
-            cls_instance = FLAMAFeatureModel(args.model_path, getattr(args, 'configuration_path', None))
-            method_parameters = [param.name for param in args.parameters]
-            command_args = {k: v for k, v in vars(args).items() if k in method_parameters}
-            method = getattr(cls_instance, args.method_name)
-            result = method(**command_args)
-            if result is not None:
-                print(result)
+            if hasattr(args, 'method_name'):
+                # Instantiate the class with the required parameters for each command
+                cls_instance = FLAMAFeatureModel(args.model_path, getattr(args, 'configuration_path', None))
+                method_parameters = [param.name for param in args.parameters]
+                command_args = {k: v for k, v in vars(args).items() if k in method_parameters}
+                method = getattr(cls_instance, args.method_name)
+                result = method(**command_args)
+                if result is not None:
+                    print(result)
+            else:
+                # Call the manually registered command
+                func = args.func
+                command_args = {k: v for k, v in vars(args).items() if k != 'func'}
+                result = func(args)
+                if result is not None:
+                    print(result)
         except Exception as e:
             print(f"Error: {e}")
     else:
-        print("Available commands:")
+        print("Feature model operations:")
         for name, docstring, _, _ in dynamic_commands:
             print(f"  {name}: {docstring}")
-        parser.print_help()
+        print("Framework developers operations:")
+        for name, description, _, _ in MANUAL_COMMANDS:
+            print(f"  {name}: {description}")
+        print("Execute flamapy --help for more information")
