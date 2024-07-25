@@ -48,9 +48,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flamapy-fm
+          python -m venv venv
+          source venv/bin/activate
           pip install .
-          pip install pytest==5.4.3
+          pip install pytest
       - name: Running test
         run: |
-          python -m pytest
+          source venv/bin/activate
+          pytest
