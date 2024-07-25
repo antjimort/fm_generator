@@ -39,10 +39,9 @@ def extract_commands(cls: type) -> List[Tuple[str, str, FunctionType, List[inspe
     return commands
 
 
-@command('generate_plugin', 'This command generates a new \
-         plugin to implement your cusom operations. \
-         To execute it you should set yourself in the path of the \
-         flamapy src directory', 
+@command('generate_plugin', """This command generates a new plugin to implement your 
+         cusom operations. To execute it you should set yourself in the path of the
+         flamapy src directory""", 
          ('name', str, 'The pluggins name'),
          ('extension', str, 'The extansion to be registered with the flamapy ecosystem'),
          ('path', str, 'The path to generate it'))
