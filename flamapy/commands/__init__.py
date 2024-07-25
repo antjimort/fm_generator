@@ -6,7 +6,7 @@ from functools import wraps
 import inspect
 from pathlib import Path
 from shutil import copytree
-from typing import List, Tuple, Optional, Any
+from typing import List, Tuple, Optional
 from types import FunctionType
 
 from flamapy.interfaces.python.flamapy_feature_model import FLAMAFeatureModel

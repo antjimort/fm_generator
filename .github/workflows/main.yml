@@ -16,8 +16,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m venv venv
           source venv/bin/activate
-          pip install prospector[with_everything]
           pip install .
+          pip install prospector[with_everything]
       - name: Analysing the code with prospector
         run: |
           source venv/bin/activate
