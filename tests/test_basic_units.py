@@ -1,7 +1,7 @@
 import sys
 import warnings
 import pytest
-from flamapy.interfaces.python.FLAMAFeatureModel import FLAMAFeatureModel
+from flamapy.interfaces.python.flamapy_feature_model import FLAMAFeatureModel
 
 VALID_MODEL = "./resources/models/simple/valid_model.uvl"
 NON_VALID_MODEL = "./resources/models/simple/invalid_model.uvl"
