@@ -6,33 +6,36 @@ from functools import wraps
 import inspect
 from pathlib import Path
 from shutil import copytree
+from typing import List, Tuple, Optional, Any
+from types import FunctionType
+
 from flamapy.interfaces.python.flamapy_feature_model import FLAMAFeatureModel
 # List to store registered commands and their arguments
 MANUAL_COMMANDS = []
 
 
-def command(name, description, *args):
+def command(name, description, *args):  # type: ignore
 
-    def decorator(func):
+    def decorator(func):  # type: ignore
         MANUAL_COMMANDS.append((name, description, func, args))
 
         @wraps(func)
-        def wrapper(*func_args, **func_kwargs):
+        def wrapper(*func_args, **func_kwargs):  # type: ignore
             return func(*func_args, **func_kwargs)
         return wrapper
     return decorator
 
 
-def extract_commands(cls):
+def extract_commands(cls: type) -> List[Tuple[str, str, FunctionType, List[inspect.Parameter]]]:
     commands = []
     for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
         if name.startswith("_"):
             continue
-        docstring = method.__doc__
+        docstring: Optional[str] = method.__doc__
         signature = inspect.signature(method)
         # Exclude 'self' from parameters
         parameters = list(signature.parameters.values())[1:]  # Skip 'self'
-        commands.append((name, docstring, method, parameters))
+        commands.append((name, docstring or "", method, parameters))
     return commands
 
 
@@ -43,7 +46,7 @@ def extract_commands(cls):
          ('name', str, 'The pluggins name'),
          ('extension', str, 'The extansion to be registered with the flamapy ecosystem'),
          ('path', str, 'The path to generate it'))
-def generate_plugin(args):
+def generate_plugin(args):  # type: ignore
     name = args.name
     ext = args.extension
     dst = args.path
@@ -84,7 +87,7 @@ def generate_plugin(args):
     print("Plugin generated!")
 
 
-def setup_dynamic_commands(subparsers, dynamic_commands):
+def setup_dynamic_commands(subparsers, dynamic_commands):  # type: ignore
     for name, docstring, method, parameters in dynamic_commands:
         subparser = subparsers.add_parser(name, help=docstring)
         subparser.add_argument('model_path', type=str, help='Path to the feature model file')
@@ -108,7 +111,7 @@ def setup_dynamic_commands(subparsers, dynamic_commands):
         subparser.set_defaults(func=method, method_name=name, parameters=parameters)
 
 
-def setup_manual_commands(subparsers, manual_commands):
+def setup_manual_commands(subparsers, manual_commands):  # type: ignore
     for name, description, func, args in manual_commands:
         subparser = subparsers.add_parser(name, help=description)
         for arg in args:
@@ -117,7 +120,7 @@ def setup_manual_commands(subparsers, manual_commands):
         subparser.set_defaults(func=func)
 
 
-def execute_command(args):
+def execute_command(args: argparse.Namespace) -> None:
     try:
         if hasattr(args, 'method_name'):
             cls_instance = FLAMAFeatureModel(args.model_path)

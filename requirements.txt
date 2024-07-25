@@ -1,5 +1,5 @@
 wheel
 flamapy-fw==2.0.0.dev6
-flamapy-fm==2.0.0.dev6
-flamapy-sat==2.0.0.dev6
-flamapy-bdd==2.0.0.dev7
+flamapy-fm==2.0.0.dev7
+flamapy-sat==2.0.0.dev7
+flamapy-bdd==2.0.0.dev9

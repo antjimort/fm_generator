@@ -1,6 +1,8 @@
+from typing import List, Any, Union
 from flamapy.core.discover import DiscoverMetamodels
 from flamapy.metamodels.fm_metamodel.models import FeatureModel
 from flamapy.core.exceptions import FlamaException
+from flamapy.metamodels.configuration_metamodel.models import Configuration
 
 
 class FLAMAFeatureModel: 
@@ -25,18 +27,18 @@ class FLAMAFeatureModel:
         self.sat_model = None
         self.bdd_model = None
 
-    def _read(self, model_path) -> FeatureModel:
+    def _read(self, model_path: str) -> FeatureModel:
         return self.discover_metamodel.use_transformation_t2m(model_path, 'fm')
 
-    def _transform_to_sat(self):
+    def _transform_to_sat(self) -> None:
         if self.sat_model is None:
             self.sat_model = self.discover_metamodel.use_transformation_m2m(self.fm_model, "pysat")
 
-    def _transform_to_bdd(self):
+    def _transform_to_bdd(self) -> None:
         if self.bdd_model is None:
             self.bdd_model = self.discover_metamodel.use_transformation_m2m(self.fm_model, "bdd")
 
-    def atomic_sets(self):
+    def atomic_sets(self) -> Union[None, List[List[Any]]]:
         """ 
         This operation is used to find the atomic sets in a model:
         It returns the atomic sets if they are found in the model. 
@@ -59,7 +61,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def average_branching_factor(self):
+    def average_branching_factor(self) -> Union[None, float]:
         """ 
         This refers to the average number of child features that a parent feature has in a 
         feature model. It's calculated by dividing the total number of child features by the 
@@ -77,7 +79,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def count_leafs(self):
+    def count_leafs(self) -> Union[None, int]:
         """ 
         This operation counts the number of leaf features in a feature model. Leaf features 
         are those that do not have any child features. They represent the most specific 
@@ -93,7 +95,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def estimated_number_of_configurations(self):
+    def estimated_number_of_configurations(self) -> Union[None, int]:
         """ 
          This is an estimate of the total number of different products that can be produced 
          from a feature model. It's calculated by considering all possible combinations of 
@@ -111,7 +113,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def feature_ancestors(self, feature_name: str):
+    def feature_ancestors(self, feature_name: str) -> Union[None, List[str]]:
         ''' 
         These are the features that are directly or indirectly the parent of a given feature in 
         a feature model. Ancestors of a feature are found by traversing up the feature hierarchy. 
@@ -131,7 +133,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def leaf_features(self):
+    def leaf_features(self) -> Union[None, List[str]]:
         """ 
         This operation is used to find leaf features in a model:
         It returns the leaf features if they are found in the model. 
@@ -156,7 +158,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def max_depth(self):
+    def max_depth(self) -> Union[None, int]:
         """ 
         This operation is used to find the max depth of the tree in a model:
         It returns the max depth of the tree. 
@@ -173,7 +175,7 @@ class FLAMAFeatureModel:
             return None
 
     #The methods above rely on sat to be executed.
-    def core_features(self):
+    def core_features(self) -> Union[None, List[str]]:
         """
         These are the features that are present in all products of a product line. 
         In a feature model, they are the features that are mandatory and not optional. 
@@ -190,7 +192,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def dead_features(self):
+    def dead_features(self) -> Union[None, List[str]]:
         """
         These are features that, due to the constraints and dependencies in the 
         feature model, cannot be included in any valid product. Dead features are usually 
@@ -205,7 +207,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def false_optional_features(self):
+    def false_optional_features(self) -> Union[None, List[str]]:
         """
         These are features that appear to be optional in the feature model, but due to the 
         constraints and dependencies, must be included in every valid product. Like dead features, 
@@ -223,7 +225,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def filter(self, configuration_path: str):
+    def filter(self, configuration_path: str) -> Union[None, List[Configuration]]:
         """
         This operation selects a subset of the products of a product line based on certain 
         criteria. For example, you might filter the products to only include those that 
@@ -242,7 +244,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def configurations_number(self, with_sat: bool = False):
+    def configurations_number(self, with_sat: bool = False) -> Union[None, int]:
         """
         This is the total number of different full configurations that can be 
         produced from a feature model. It's calculated by considering all possible 
@@ -266,7 +268,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def configurations(self, with_sat: bool = False):
+    def configurations(self, with_sat: bool = False) -> Union[None, List[Configuration]]:
         """
         These are the individual outcomes that can be produced from a feature model. Each product 
         is a combination of features that satisfies all the constraints and dependencies in the 
@@ -289,7 +291,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def commonality(self, configuration_path: str):
+    def commonality(self, configuration_path: str) -> Union[None, float]:
         """
         This is a measure of how often a feature appears in the products of a 
         product line. It's usually expressed as a percentage. A feature with 
@@ -308,7 +310,9 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def satisfiable_configuration(self, configuration_path: str, full_configuration: bool = False):
+    def satisfiable_configuration(self, 
+                                  configuration_path: str, 
+                                  full_configuration: bool = False) -> Union[None, bool]:
         """
         This is a product that is produced from a valid configuration of features. A valid 
         product satisfies all the constraints and dependencies in the feature model.
@@ -332,7 +336,7 @@ class FLAMAFeatureModel:
             print(f"Error: {exception}")
             return None
 
-    def satisfiable(self):
+    def satisfiable(self) -> Union[None, bool]:
         """
         In the context of feature models, this usually refers to whether the feature model itself 
         satisfies all the constraints and dependencies. A a valid feature model is one that 
