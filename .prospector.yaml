@@ -6,6 +6,7 @@ ignore-paths:
   - build
   - tests
   - skel_metamodel
+  - flamapy/__init__.py  # Añadir esta línea
 
 pycodestyle:
   options:
