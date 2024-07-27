@@ -16,7 +16,7 @@ dev_requirements = read_requirements("requirements-dev.txt")
 
 setuptools.setup(
     name="flamapy",
-    version="2.0.0.dev3",
+    version="2.0.0.dev4",
     author="Flamapy",
     author_email="flamapy@us.es",
     description="Flamapy feature model is a distribution of the flama framework containing all plugins required to analyze feature models. It also offers a richier API and a complete command line interface and documentation.",
