@@ -325,10 +325,11 @@ class FLAMAFeatureModel:
                                                               'PySATSatisfiableConfiguration')
 
             if full_configuration:
-                operation.set_configuration(configuration, is_full=True)
+                configuration.is_full = True
             else:
-                operation.set_configuration(configuration, is_full=False)
+                configuration.is_full = False
 
+            operation.set_configuration(configuration)
             operation.execute(self.sat_model)
             result = operation.get_result()
             return result

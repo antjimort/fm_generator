@@ -216,7 +216,8 @@ def test_valid_model_operation(setup_model, expected_output):
 def test_valid_configuration_operation(setup_model, expected_output, configuration):
     model = setup_model
     operation = PySATSatisfiableConfiguration()
-    operation.set_configuration(configuration,is_full=False)
+    configuration.is_full = False
+    operation.set_configuration(configuration)
     operation.execute(model)
     result = operation.is_satisfiable()
 
@@ -234,7 +235,8 @@ def test_valid_configuration_operation(setup_model, expected_output, configurati
 def test_valid_product_operation(setup_model, expected_output, configuration):
     model = setup_model
     operation = PySATSatisfiableConfiguration()
-    operation.set_configuration(configuration,is_full=True)
+    configuration.is_full = True
+    operation.set_configuration(configuration)
     operation.execute(model)
     result = operation.is_satisfiable()
 
