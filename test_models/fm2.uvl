@@ -1,0 +1,48 @@
+features
+	FM_2 
+		or
+			F1 
+			F2 {Capacity 30}
+		alternative
+			F3 
+			F4 
+		alternative
+			F5 
+			F6 {Enabled true}
+		alternative
+			F7 
+			F8 {Priority 'medium'}
+			F9 
+			F10 {Enabled true}
+		alternative
+			F11 
+			F12 
+			F13 {Capacity 30}
+			F14 
+			F15 {Capacity 30}
+		[3]
+			F16 
+			F17 
+			F18 
+			F19 {Priority 'medium'}
+		alternative
+			F20 
+			F21 
+		or
+			F22 
+			F23 {Priority 'medium'}
+			F24 
+			F25 {Capacity 30}
+		[2]
+			F26 {Enabled true}
+			F27 {Priority 'medium'}
+constraints
+	F25 => F5
+	F9 => F24
+	F18 => F17
+	F27 => F12
+	F8 => F2
+	F23 => F8
+	F18 => F16
+	F3 => F17
+	F9 => F14
