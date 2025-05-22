@@ -13,8 +13,6 @@ class FmgeneratorModel(VariabilityModel):
     def get_extension() -> str:
         return "fm"
 
-    params = Params()
-
     def __init__(self, params: Params) -> None:
         self.params = params
 

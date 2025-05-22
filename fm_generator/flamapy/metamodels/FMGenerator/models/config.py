@@ -103,6 +103,19 @@ class Params:
             raise ValueError(
                 f"[ERROR] La suma de las probabilidades de relación no es 1.0 (actual: {total})"
             )
+        
+            # --- Validación de suma de probabilidades de constraints booleanas ---
+        total_ctc = (
+            self.PROB_AND +
+            self.PROB_OR_CT +
+            self.PROB_IMPLICATION +
+            self.PROB_EQUIVALENCE
+        )
+        if abs(total_ctc - 1.0) > 1e-6:
+            raise ValueError(
+                f"[ERROR] La suma de PROB_AND, PROB_OR_CT, PROB_IMPLICATION y PROB_EQUIVALENCE debe ser 1.0 (actual: {total_ctc})"
+            )
+
 
         # --- Validaciones de atributos ---
         if self.RANDOM_ATTRIBUTES:

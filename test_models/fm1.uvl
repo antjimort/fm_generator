@@ -1,25 +1,37 @@
 features
 	F0 
-		or
+		[0..2]
 			F3 
-			F2 {Capacity 30}
+			F2 
+		optional
 			F1 
-				[0..3]
+				[3]
 					F6 
-					F5 
-					F4 
-						alternative
-							F9 
-							F8 
-								[0..2]
-									F11 
-									F10 
+						optional
 							F7 
+								optional
+									F14 
+					F5 
+						optional
+							F8 
+								optional
+									F13 {Capacity 30}
+					F4 
+						[0..2]
+							F10 
+								optional
+									F11 
+							F9 
 								optional
 									F12 
 constraints
-	F6 & ! F1
-	F6 & F11
-	F3 | F12
-	F10 => F9
-	F5 <=> F7
+	! F7 & ! F2
+	F13 <=> F12
+	F3 <=> F12
+	! F2 <=> F8
+	! F4 <=> ! F2
+	! F13 & F9
+	F6 <=> F2
+	! F9 <=> F12
+	! F13 => F6
+	F1 <=> F4

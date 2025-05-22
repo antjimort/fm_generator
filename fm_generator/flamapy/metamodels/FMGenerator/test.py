@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     params = Params(
         NUM_MODELS=5,
-        SEED=10293,
+        SEED=1093,
         # ENSURE_SATISFIABLE=True,
         NAME_PREFIX="fm",
         # INCLUDE_FEATURE_COUNT_SUFFIX=True,
@@ -74,11 +74,11 @@ if __name__ == "__main__":
         MIN_VARS_PER_CONSTRAINT=1,
         MAX_VARS_PER_CONSTRAINT=3,
 
-        PROB_NOT=0.1,
-        PROB_AND=0.3,
-        PROB_OR_CT=0.2,
-        PROB_IMPLICATION=0.2,
-        PROB_EQUIVALENCE=0.2,
+        PROB_NOT=0.3,
+        PROB_AND=0.1,
+        PROB_OR_CT=0.1,
+        PROB_IMPLICATION=0.1,
+        PROB_EQUIVALENCE=0.7,
 
         PROB_SUM=0.1,
         PROB_SUBSTRACT=0.1,
