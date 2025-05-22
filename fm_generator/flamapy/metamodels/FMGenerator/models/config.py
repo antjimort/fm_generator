@@ -29,6 +29,7 @@ class Params:
 
     MIN_FEATURE_CARDINALITY: list[int] = field(default_factory=lambda: [2])
     MAX_FEATURE_CARDINALITY: list[int] = field(default_factory=lambda: [5, 8])
+    PROB_FEATURE_CARDINALITY: float = 0.5
 
     MAX_TREE_DEPTH: int = 5
     DIST_OPTIONAL: float = 0.3

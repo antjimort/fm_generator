@@ -1,0 +1,30 @@
+features
+	F0 
+		optional
+			F3 
+		optional
+			F2 
+		optional
+			F1 
+				alternative
+					F6 
+						[0..2]
+							F8 
+							F7 
+								[4]
+									F14 
+									F13 
+									F12 
+									F11 
+					F5 {Capacity 30}
+						optional
+							F9 
+					F4 {Capacity 30}
+						optional
+							F10 
+constraints
+	F13 <=> F14
+	F2 & F5
+	F3 & F7
+	F14 => F11
+	F3 & ! F10

@@ -1,0 +1,41 @@
+features
+	F0 
+		[5..6]
+			F25 
+			F24 
+			F23 {Enabled true}
+			F22 
+			F21 
+			F20 
+		mandatory
+			F19 
+		[3]
+			F18 
+			F17 
+			F16 
+			F15 
+			F14 {Enabled true}
+			F13 
+		[5]
+			F12 
+			F11 
+			F10 {Priority 'medium'}
+			F9 {Priority 'medium'}
+			F8 
+		optional
+			F7 
+		[4]
+			F6 {Priority 'medium'}
+			F5 
+			F4 
+			F3 
+		alternative
+			F2 
+			F1 {Capacity 30}
+constraints
+	F11 => F18
+	F8 => F22
+	F6 => F4
+	F7 => F9
+	F19 => F18
+	F2 => F24

@@ -1,5 +1,5 @@
 build
-env
+flamapyenv
 htmlcov
 flamapy/metamodels
 

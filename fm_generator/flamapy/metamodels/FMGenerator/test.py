@@ -1,6 +1,7 @@
 from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
 from fm_generator.flamapy.metamodels.FMGenerator.models.models import Params, FmgeneratorModel
 from flamapy.metamodels.fm_metamodel.models.feature_model import Attribute, Domain, Range
+import random
 
 if __name__ == "__main__":
 
@@ -32,8 +33,8 @@ if __name__ == "__main__":
 
 
     params = Params(
-        NUM_MODELS=3,
-        SEED=42,
+        NUM_MODELS=5,
+        SEED=10293,
         # ENSURE_SATISFIABLE=True,
         NAME_PREFIX="fm",
         # INCLUDE_FEATURE_COUNT_SUFFIX=True,
@@ -47,8 +48,8 @@ if __name__ == "__main__":
         AGGREGATE_FUNCTIONS=True,
         STRING_CONSTRAINTS=True,
 
-        MIN_FEATURES=25,
-        MAX_FEATURES=30,
+        MIN_FEATURES=10,
+        MAX_FEATURES=16,
         DIST_BOOLEAN=0.4,
         DIST_INTEGER=0.2,
         DIST_REAL=0.2,
@@ -56,15 +57,16 @@ if __name__ == "__main__":
 
         MIN_FEATURE_CARDINALITY=[2],
         MAX_FEATURE_CARDINALITY=[4, 5],
+        PROB_FEATURE_CARDINALITY = 0.4,
 
         MAX_TREE_DEPTH=4,
-        DIST_OPTIONAL=0.3,
-        DIST_MANDATORY=0.3,
-        DIST_ALTERNATIVE=0.2,
-        DIST_OR=0.1,
-        DIST_GROUP_CARDINALITY=0.1,
-        GROUP_CARDINALITY_MIN=2,
-        GROUP_CARDINALITY_MAX=5,
+        DIST_OPTIONAL=0.8,
+        DIST_MANDATORY=0.05,
+        DIST_ALTERNATIVE=0.05,
+        DIST_OR=0.05,
+        DIST_GROUP_CARDINALITY=0.05,
+        GROUP_CARDINALITY_MIN=3,
+        GROUP_CARDINALITY_MAX=7,
 
         MIN_CONSTRAINTS=5,
         MAX_CONSTRAINTS=10,

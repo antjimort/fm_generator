@@ -25,7 +25,7 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
             min_val, max_val = random.randint(0, 50), random.randint(51, 100)
             domain = Domain(ranges=[Range(min_val, max_val)], elements=None)
             default = round(random.uniform(min_val, max_val), 2)
-        else:  # string
+        else:
             options = ["low", "medium", "high"]
             domain = Domain(ranges=None, elements=options)
             default = random.choice(options)
@@ -45,79 +45,139 @@ def assign_manual_attributes(params: Params, features: list[Feature]) -> None:
                 new_attr.set_parent(feature)
                 feature.add_attribute(new_attr)
 
-def generate_single_model(params: Params, index: int) -> FeatureModel:
-    """
-    Generate a single feature model.
-    """
-    random.seed(params.SEED + index)
+def select_relation_types(params: Params, total: int) -> list[str]:
+    return random.choices(
+        population=['mand', 'opt', 'alt', 'or', 'group'],
+        weights=[
+            params.DIST_MANDATORY,
+            params.DIST_OPTIONAL,
+            params.DIST_ALTERNATIVE,
+            params.DIST_OR,
+            params.DIST_GROUP_CARDINALITY
+        ],
+        k=total
+    )
 
-    # Crear la raíz del modelo
-    root_feature = Feature(name=f"{params.NAME_PREFIX.upper()}_{index}")
-    fm = FeatureModel(root=root_feature)
+def determine_group_size(rel_kind: str, pool_size: int, params: Params) -> (str, int):
+    max_size = min(params.GROUP_CARDINALITY_MAX, pool_size)
+    if max_size < 1:
+        return 'opt', 1
+    if rel_kind == 'mand':
+        return 'mand', random.randint(1, max_size)
+    if rel_kind == 'opt':
+        return 'opt', random.randint(1, max_size)
+    if rel_kind in ['alt', 'or']:
+        if pool_size < 2:
+            return 'opt', random.randint(1, max_size)
+        return rel_kind, random.randint(2, max_size)
+    if rel_kind == 'group':
+        if pool_size < params.GROUP_CARDINALITY_MIN:
+            return 'opt', random.randint(1, max_size)
+        min_size = min(params.GROUP_CARDINALITY_MIN, max_size)
+        return 'group', random.randint(min_size, max_size)
+    return 'opt', random.randint(1, max_size)
 
-    # Generar features hijas
-    num_features = random.randint(params.MIN_FEATURES, params.MAX_FEATURES)
-    features: list[Feature] = []
+def create_relation(parent: Feature, children: list[Feature], rel_kind: str, params: Params) -> Relation:
+    size = len(children)
+    if rel_kind == 'mand':
+        return Relation(parent=parent, children=children, card_min=size, card_max=size)
+    if rel_kind == 'opt':
+        return Relation(parent=parent, children=children, card_min=0, card_max=size)
+    if rel_kind == 'alt':
+        return Relation(parent=parent, children=children, card_min=1, card_max=1)
+    if rel_kind == 'or':
+        return Relation(parent=parent, children=children, card_min=1, card_max=size)
+    min_bound = max(params.GROUP_CARDINALITY_MIN, 1)
+    max_bound = size
+    if min_bound > max_bound:
+        min_bound = max_bound
+    card_min = random.randint(min_bound, max_bound)
+    card_max = random.randint(card_min, max_bound)
+    return Relation(parent=parent, children=children, card_min=card_min, card_max=card_max)
 
-    for i in range(1, num_features):
-        fname = f"F{i}"
-        feature = Feature(name=fname)
-        features.append(feature)
+def add_relations_to_level(parents: list[Feature], children: list[Feature], params: Params) -> None:
+    total = len(children)
+    rel_types = select_relation_types(params, total)
+    random.shuffle(rel_types)
+    pool = children[:]
+    parent_idx = 0
+    for rel_kind in rel_types:
+        if not pool:
+            break
+        parent = parents[parent_idx % len(parents)]
+        parent_idx += 1
+        kind, size = determine_group_size(rel_kind, len(pool), params)
+        group = [pool.pop() for _ in range(size)]
+        rel = create_relation(parent, group, kind, params)
+        parent.add_relation(rel)
+        for child in group:
+            child.parent = parent
 
-    create_relations_with_cardinality(root_feature, features, params)
+def generate_hierarchy(params: Params) -> tuple[FeatureModel, list[Feature]]:
+    root = Feature(name="F0")
+    fm = FeatureModel(root=root)
+    numFeats = random.randint(params.MIN_FEATURES, params.MAX_FEATURES)
+    names = [f"F{i+1}" for i in range(numFeats)]
+    features = [Feature(name=n) for n in names]
+    levels = {0: [root]}
+    idx = 0
+    total = 0
+    max_depth = params.MAX_TREE_DEPTH
 
-    # Atributos en Boolean level
-    if params.RANDOM_ATTRIBUTES:
-        generate_random_attributes(params, features)
-    else:
-        assign_manual_attributes(params, features)
+    for depth in range(1, max_depth + 1):
+        remaining = numFeats - total
+        if remaining <= 0:
+            break
+        parents = levels.get(depth - 1, [])
+        if not parents:
+            break
+        levels_left = max_depth - depth + 1
+        level_count = max(1, remaining // levels_left)
+        if depth == max_depth:
+            level_count = remaining
+        level_feats = features[idx: idx + level_count]
+        levels[depth] = level_feats
+        idx += level_count
+        total += level_count
+        add_relations_to_level(parents, level_feats, params)
 
-    # Constraints simples: A => B
-    for i in range(random.randint(params.MIN_CONSTRAINTS, params.MAX_CONSTRAINTS)):
+    connected = {f.name for f in fm.get_features()}
+    return fm, [f for f in features if f.name in connected]
+
+def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -> None:
+    count = random.randint(params.MIN_CONSTRAINTS, params.MAX_CONSTRAINTS)
+    for i in range(count):
+        if len(features) < 2:
+            break
         a, b = random.sample(features, 2)
+        op = random.choices(
+            [ASTOperation.IMPLIES, ASTOperation.AND, ASTOperation.OR, ASTOperation.EQUIVALENCE],
+            weights=[
+                params.PROB_IMPLICATION,
+                params.PROB_AND,
+                params.PROB_OR_CT,
+                params.PROB_EQUIVALENCE
+            ],
+            k=1
+        )[0]
+
         left = Node(a.name)
         right = Node(b.name)
-        root = Node(ASTOperation.IMPLIES, left, right)
-        ast = AST(root)
-        constraint = Constraint(name=f"ctc{i}", ast=ast)
-        fm.ctcs.append(constraint)
 
+        if random.random() < params.PROB_NOT:
+            left = Node(ASTOperation.NOT, left)
+        if random.random() < params.PROB_NOT:
+            right = Node(ASTOperation.NOT, right)
+
+        root = Node(op, left, right)
+        fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+
+def generate_single_model(params: Params, index: int) -> FeatureModel:
+    random.seed(params.SEED + index)
+    fm, feats = generate_hierarchy(params)
+    if params.RANDOM_ATTRIBUTES:
+        generate_random_attributes(params, feats)
+    else:
+        assign_manual_attributes(params, feats)
+    add_constraints(fm, feats, params)
     return fm
-
-def create_relations_with_cardinality(root_feature: Feature, features: list[Feature], params: Params) -> None:
-    i = 0
-    while i < len(features):
-        max_group_size = min(params.GROUP_CARDINALITY_MAX, len(features) - i)
-
-        if params.GROUP_CARDINALITY_MIN > max_group_size:
-            group_size = max_group_size
-        else:
-            group_size = random.randint(params.GROUP_CARDINALITY_MIN, max_group_size)
-
-        group = []
-        for _ in range(group_size):
-            if i >= len(features):
-                break
-            group.append(features[i])
-            i += 1
-
-        if len(group) == 1:
-            rel_type = random.choices([(1, 1), (0, 1)], weights=[params.DIST_MANDATORY, params.DIST_OPTIONAL])[0]
-            relation = Relation(parent=root_feature, children=group, card_min=rel_type[0], card_max=rel_type[1])
-        else:
-            max_cardinality = len(group)
-
-            if (random.random() < params.DIST_GROUP_CARDINALITY and max_cardinality >= params.GROUP_CARDINALITY_MIN):
-                min_bound = max(params.GROUP_CARDINALITY_MIN, 1)
-                max_bound = min(params.GROUP_CARDINALITY_MAX, max_cardinality)
-                min_c = random.randint(min_bound, max_bound)
-                max_c = random.randint(min_c, max_bound)
-                relation = Relation(parent=root_feature, children=group, card_min=min_c, card_max=max_c)
-            else:
-                rel_type = random.choices(
-                    [(1, len(group)), (1, 1)],
-                    weights=[params.DIST_OR, params.DIST_ALTERNATIVE]
-                )[0]
-                relation = Relation(parent=root_feature, children=group, card_min=rel_type[0], card_max=rel_type[1])
-
-        root_feature.add_relation(relation)
