@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     params = Params(
         NUM_MODELS=5,
-        SEED=1093,
+        SEED=10093,
         # ENSURE_SATISFIABLE=True,
         NAME_PREFIX="fm",
         # INCLUDE_FEATURE_COUNT_SUFFIX=True,
