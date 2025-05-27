@@ -3,7 +3,7 @@ features
 		[0..3]
 			F3 
 			F2 
-				optional
+				mandatory
 					F4 {Priority 'medium'}
 						optional
 							F10 

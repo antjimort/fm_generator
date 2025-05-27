@@ -58,41 +58,31 @@ def select_relation_types(params: Params, total: int) -> list[str]:
         k=total
     )
 
-def determine_group_size(rel_kind: str, pool_size: int, params: Params) -> (str, int):
-    max_size = min(params.GROUP_CARDINALITY_MAX, pool_size)
-    if max_size < 1:
-        return 'opt', 1
-    if rel_kind == 'mand':
-        return 'mand', random.randint(1, max_size)
-    if rel_kind == 'opt':
-        return 'opt', random.randint(1, max_size)
-    if rel_kind in ['alt', 'or']:
-        if pool_size < 2:
-            return 'opt', random.randint(1, max_size)
-        return rel_kind, random.randint(2, max_size)
-    if rel_kind == 'group':
-        if pool_size < params.GROUP_CARDINALITY_MIN:
-            return 'opt', random.randint(1, max_size)
-        min_size = min(params.GROUP_CARDINALITY_MIN, max_size)
-        return 'group', random.randint(min_size, max_size)
-    return 'opt', random.randint(1, max_size)
+def determine_group_size(pool_size: int, params: Params) -> int:
+    return random.randint(1, min(params.GROUP_CARDINALITY_MAX, pool_size))
 
 def create_relation(parent: Feature, children: list[Feature], rel_kind: str, params: Params) -> Relation:
     size = len(children)
-    if rel_kind == 'mand':
+    if rel_kind == 'mand': # Revisar
         return Relation(parent=parent, children=children, card_min=size, card_max=size)
     if rel_kind == 'opt':
-        return Relation(parent=parent, children=children, card_min=0, card_max=size)
+        if size == 1: # Revisar
+            return Relation(parent=parent, children=children, card_min=0, card_max=1)
+        else:
+            return Relation(parent=parent, children=children, card_min=0, card_max=size)
     if rel_kind == 'alt':
         return Relation(parent=parent, children=children, card_min=1, card_max=1)
     if rel_kind == 'or':
         return Relation(parent=parent, children=children, card_min=1, card_max=size)
+
+    # group cardinality
     min_bound = max(params.GROUP_CARDINALITY_MIN, 1)
     max_bound = size
     if min_bound > max_bound:
         min_bound = max_bound
     card_min = random.randint(min_bound, max_bound)
     card_max = random.randint(card_min, max_bound)
+
     return Relation(parent=parent, children=children, card_min=card_min, card_max=card_max)
 
 def add_relations_to_level(parents: list[Feature], children: list[Feature], params: Params) -> None:
@@ -106,9 +96,9 @@ def add_relations_to_level(parents: list[Feature], children: list[Feature], para
             break
         parent = parents[parent_idx % len(parents)]
         parent_idx += 1
-        kind, size = determine_group_size(rel_kind, len(pool), params)
+        size = determine_group_size(len(pool), params)
         group = [pool.pop() for _ in range(size)]
-        rel = create_relation(parent, group, kind, params)
+        rel = create_relation(parent, group, rel_kind, params)
         parent.add_relation(rel)
         for child in group:
             child.parent = parent
