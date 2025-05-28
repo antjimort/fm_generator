@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "fm_generator"
 version = "0.0.1"
 requires-python = ">=3.12"
-authors = [{ name = "antjimort", email = "ajimenez34@us.es" }
+authors = [{ name = "antjimort", email = "ajimenez34@us.es" }]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
