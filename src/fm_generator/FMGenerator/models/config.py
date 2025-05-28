@@ -48,7 +48,7 @@ class Params:
     MAX_VARS_PER_CONSTRAINT: int = 3
 
     PROB_NOT: float = 0.1
-    PROB_AND: float = 0.3
+    PROB_AND: float = 0.4
     PROB_OR_CT: float = 0.2
     PROB_IMPLICATION: float = 0.2
     PROB_EQUIVALENCE: float = 0.2
