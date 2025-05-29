@@ -47,6 +47,15 @@ class Params:
     MIN_VARS_PER_CONSTRAINT: int = 1
     MAX_VARS_PER_CONSTRAINT: int = 3
 
+
+    # NO REFLEJADO EN EL GENERADOR AÚN
+    CTC_DIST_BOOLEAN: float = 0.7
+    CTC_DIST_INTEGER: float = 0.2
+    CTC_DIST_REAL: float = 0.1
+    CTC_DIST_STRING: float = 0.0
+    # NO REFLEJADO EN EL GENERADOR AÚN
+
+
     PROB_NOT: float = 0.1
     PROB_AND: float = 0.4
     PROB_OR_CT: float = 0.2
