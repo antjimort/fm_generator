@@ -43,7 +43,7 @@ class Params:
     # Paso 3: Constraints
     MIN_CONSTRAINTS: int = 5
     MAX_CONSTRAINTS: int = 20
-    EXTRA_CONSTRAINT_REPRESENTATIVENESS: float = 0.5
+    EXTRA_CONSTRAINT_REPRESENTATIVENESS: int = 1
     MIN_VARS_PER_CONSTRAINT: int = 1
     MAX_VARS_PER_CONSTRAINT: int = 3
 
@@ -66,6 +66,7 @@ class Params:
     PROB_SUBSTRACT: float = 0.1
     PROB_MULTIPLY: float = 0.1
     PROB_DIVIDE: float = 0.1
+    
     PROB_EQUALS: float = 0.1
     PROB_LESS: float = 0.1
     PROB_GREATER: float = 0.1
