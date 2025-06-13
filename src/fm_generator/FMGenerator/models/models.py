@@ -1,9 +1,9 @@
 from flamapy.core.models import VariabilityModel
 from flamapy.metamodels.fm_metamodel.models import FeatureModel
-from fm_generator.src.fm_generator.FMGenerator.operations.generate_models import (
+from fm_generator.FMGenerator.operations.generate_models import (
     generate_single_model,
 )
-from fm_generator.src.fm_generator.FMGenerator.models.config import Params
+from fm_generator.FMGenerator.models.config import Params
 from pathlib import Path
 from flamapy.metamodels.fm_metamodel.transformations.uvl_writer import UVLWriter
 import os
