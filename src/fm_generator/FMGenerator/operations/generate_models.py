@@ -5,7 +5,7 @@ from flamapy.metamodels.fm_metamodel.models.feature_model import (
     FeatureModel, Feature, Relation, Constraint, Attribute, Domain, Range
 )
 from flamapy.core.models.ast import AST, ASTOperation, Node
-from fm_generator.src.fm_generator.FMGenerator.models.config import Params
+from fm_generator.FMGenerator.models.config import Params
 
 def generate_random_attributes(params: Params, features: list[Feature]) -> None:
     num_attributes = random.randint(params.MIN_ATTRIBUTES, params.MAX_ATTRIBUTES)
