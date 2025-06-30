@@ -50,8 +50,8 @@ class Params:
 
     # NO REFLEJADO EN EL GENERADOR AÚN
     CTC_DIST_BOOLEAN: float = 0.7
-    CTC_DIST_INTEGER: float = 0.2
-    CTC_DIST_REAL: float = 0.1
+    CTC_DIST_NUMERIC: float = 0.2
+    CTC_DIST_AGGREGATE: float = 0.1
     CTC_DIST_STRING: float = 0.0
     # NO REFLEJADO EN EL GENERADOR AÚN
 
