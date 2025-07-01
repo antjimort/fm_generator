@@ -7,35 +7,75 @@ import random
 if __name__ == "__main__":
 
     # Atributo booleano
-    attr1 = Attribute(
-        name="Enabled",
-        domain=Domain(ranges=None, elements=[True, False]),
-        default_value=True
-    )
+    # attr1 = Attribute(
+    #     name="Enabled",
+    #     domain=Domain(ranges=None, elements=[True, False]),
+    #     default_value=True
+    # )
+
+    # # Atributo entero
+    # attr2 = Attribute(
+    #     name="Capacity",
+    #     domain=Domain(ranges=[Range(10, 50)], elements=None),
+    #     default_value=30
+    # )
+
+    # # Atributo string
+    # attr3 = Attribute(
+    #     name="Priority",
+    #     domain=Domain(ranges=None, elements=["low", "medium", "high"]),
+    #     default_value="medium"
+    # )
+
+
+    attr1 = {
+        'name': 'Enabled',
+        'type': 'Boolean',
+        'value': ['True', 'False'],
+        'min_value': '0',
+        'max_value': '0',
+        'attach_probability': '0.1'
+    }
 
     # Atributo entero
-    attr2 = Attribute(
-        name="Capacity",
-        domain=Domain(ranges=[Range(10, 50)], elements=None),
-        default_value=30
-    )
+    attr2 = {
+        'name': 'Capacity',
+        'type': 'Integer',
+        'value': 'True',
+        'min_value': '-10',
+        'max_value': '10',
+        'attach_probability': '0.1'
+    }
+
+    # Atributo real
+    attr3 = {
+        'name': 'Measure',
+        'type': 'Real',
+        'value': 'True',
+        'min_value': '-10.0',
+        'max_value': '10.0',
+        'attach_probability': '0.1'
+    }
 
     # Atributo string
-    attr3 = Attribute(
-        name="Priority",
-        domain=Domain(ranges=None, elements=["low", "medium", "high"]),
-        default_value="medium"
-    )
+    attr4 = {
+        'name': 'License Plate',
+        'type': 'String',
+        'value': 'True',
+        'min_value': '5',
+        'max_value': '10',
+        'attach_probability': '0.1'
+    }
 
     # Lista de atributos y configuraciones asociadas
-    attributes = [attr1, attr2, attr3]
-    attach_probs = [0.1, 0.1, 0.1]  # Probabilidad de que cada uno aparezca en una feature
-    usable_in_ctcs = [True, True, False]  # Si se puede usar en constraints
+    attributes = [attr1, attr2, attr3, attr4]
+    # attach_probs = [0.1, 0.1, 0.1]  # Probabilidad de que cada uno aparezca en una feature
+    # usable_in_ctcs = [True, True, False]  # Si se puede usar en constraints
 
 
     params = Params(
-        NUM_MODELS=5,
-        SEED=10093,
+        NUM_MODELS=6,
+        SEED=183,
         # ENSURE_SATISFIABLE=True,
         NAME_PREFIX="fm",
         # INCLUDE_FEATURE_COUNT_SUFFIX=True,
@@ -99,9 +139,9 @@ if __name__ == "__main__":
         MIN_ATTRIBUTES=None,
         MAX_ATTRIBUTES=None,
         ATTRIBUTES_LIST=attributes,
-        ATTRIBUTE_ATTACH_PROBS=attach_probs,
-        ATTRIBUTE_IN_CONSTRAINTS=usable_in_ctcs,
+        # ATTRIBUTE_ATTACH_PROBS=attach_probs,
+        # ATTRIBUTE_IN_CONSTRAINTS=usable_in_ctcs,
     )
 
     generator = FmgeneratorModel(params)
-    models = generator.generate_models()
+    models = generator.generate_models('./fm_generator/src/fm_generator/FMGenerator/test_models')

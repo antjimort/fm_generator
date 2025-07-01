@@ -1,28 +1,28 @@
 features
 	F0 
-		optional
+		[0..2]
+			F3 
 			F2 
-				optional
-					F3 
-						[0..3]
-							F7 
-							F6 
-							F5 
-								or
+				[0..2]
+					F5 
+						[0..2]
+							F8 {Measure 2.312}
+								[0..2]
+									F11 
 									F10 
-									F9 
-									F8 
-		mandatory
-			F1 {Capacity 30}
+							F7 {Measure 1.421}
+								optional
+									F12 {Capacity 0}
+					F4 {Capacity -9}
+						optional
+							F9 {Measure -9.693}
+		optional
+			F1 
 				optional
-					F4 
+					F6 
 constraints
-	F3 | ! F7
-	F8 <=> F3
-	F2 <=> F7
-	! F8 <=> ! F2
-	F3 <=> ! F9
-	F4 => F6
-	F10 <=> F8
-	F7 <=> ! F2
-	F4 => F6
+	F12 <=> F8
+	F5 <=> F12
+	! F5 => ! F12
+	! F12 & F1
+	F8 <=> ! F9

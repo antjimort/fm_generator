@@ -1,4 +1,5 @@
 import random
+import string
 from enum import Enum
 from dataclasses import dataclass, field
 from flamapy.metamodels.fm_metamodel.models.feature_model import (
@@ -34,16 +35,96 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
         attribute.set_parent(feature)
         feature.add_attribute(attribute)
 
+
+
+import string
+
 def assign_manual_attributes(params: Params, features: list[Feature]) -> None:
     assert params.MIN_ATTRIBUTES is None and params.MAX_ATTRIBUTES is None, (
         "MIN_ATTRIBUTES and MAX_ATTRIBUTES must be None when using manual attributes."
     )
-    for attr, prob in zip(params.ATTRIBUTES_LIST, params.ATTRIBUTE_ATTACH_PROBS):
+    attr_dicts = params.ATTRIBUTES_LIST
+
+    for attr in attr_dicts:
+        name = attr.get("name")
+        type_ = attr.get("type", "").strip().lower()
+        value = attr.get("value")
+        min_value = attr.get("min_value")
+        max_value = attr.get("max_value")
+        attach_prob = attr.get("attach_probability", 1.0)  # Por defecto 1.0 (seguro se añade)
+
+        if type_ == "boolean":
+            domain_values = value
+            if not isinstance(domain_values, list):
+                if domain_values in [True, False]:
+                    domain_values = [domain_values]
+                elif isinstance(domain_values, str):
+                    v = domain_values.strip().lower()
+                    if v == "true":
+                        domain_values = [True]
+                    elif v == "false":
+                        domain_values = [False]
+                    else:
+                        domain_values = [True, False]
+                else:
+                    domain_values = [True, False]
+            domain = Domain(ranges=None, elements=domain_values)
+            def gen_default():
+                return random.choice(domain_values)
+
+        elif type_ == "integer":
+            try:
+                min_v = int(min_value)
+            except Exception:
+                min_v = 0
+            try:
+                max_v = int(max_value)
+            except Exception:
+                max_v = 10
+            domain = Domain(ranges=[Range(min_v, max_v)], elements=None)
+            def gen_default():
+                return random.randint(min_v, max_v)
+
+        elif type_ == "real":
+            try:
+                min_v = float(min_value)
+            except Exception:
+                min_v = 0.0
+            try:
+                max_v = float(max_value)
+            except Exception:
+                max_v = 1.0
+            domain = Domain(ranges=[Range(min_v, max_v)], elements=None)
+            def gen_default():
+                return round(random.uniform(min_v, max_v), 3)
+
+        elif type_ == "string":
+            try:
+                min_len = int(min_value)
+            except Exception:
+                min_len = 1
+            try:
+                max_len = int(max_value)
+            except Exception:
+                max_len = 10
+            domain = Domain(ranges=[Range(min_len, max_len)], elements=None)
+            def gen_default():
+                length = random.randint(min_len, max_len)
+                letters = string.ascii_letters + string.digits
+                return ''.join(random.choices(letters, k=length))
+
+        else:
+            continue
+
         for feature in features:
-            if random.random() < prob:
-                new_attr = Attribute(name=attr.name, domain=attr.domain, default_value=attr.default_value)
-                new_attr.set_parent(feature)
-                feature.add_attribute(new_attr)
+            if random.random() < float(attach_prob):
+                default = gen_default()
+                attribute = Attribute(name=name, domain=domain, default_value=default)
+                attribute.set_parent(feature)
+                feature.add_attribute(attribute)
+
+
+
 
 def select_relation_types(params: Params, total: int) -> list[str]:
     return random.choices(

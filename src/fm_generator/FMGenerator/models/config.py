@@ -135,8 +135,8 @@ class Params:
             if self.MIN_ATTRIBUTES is not None or self.MAX_ATTRIBUTES is not None:
                 raise ValueError("[ERROR] MIN_ATTRIBUTES y MAX_ATTRIBUTES deben ser None si RANDOM_ATTRIBUTES es False.")
 
-            if len(self.ATTRIBUTES_LIST) != len(self.ATTRIBUTE_ATTACH_PROBS) or len(self.ATTRIBUTES_LIST) != len(self.ATTRIBUTE_IN_CONSTRAINTS):
-                raise ValueError("[ERROR] Las listas ATTRIBUTES_LIST, ATTRIBUTE_ATTACH_PROBS y ATTRIBUTE_IN_CONSTRAINTS deben tener la misma longitud.")
+            # if len(self.ATTRIBUTES_LIST) != len(self.ATTRIBUTE_ATTACH_PROBS) or len(self.ATTRIBUTES_LIST) != len(self.ATTRIBUTE_IN_CONSTRAINTS):
+            #     raise ValueError("[ERROR] Las listas ATTRIBUTES_LIST, ATTRIBUTE_ATTACH_PROBS y ATTRIBUTE_IN_CONSTRAINTS deben tener la misma longitud.")
 
             for i, p in enumerate(self.ATTRIBUTE_ATTACH_PROBS):
                 if not (0.0 <= p <= 1.0):
