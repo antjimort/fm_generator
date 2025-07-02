@@ -1,28 +1,44 @@
 features
 	F0 
-		[0..2]
-			F3 
-			F2 
-				[0..2]
-					F5 
-						[0..2]
-							F8 {Measure 2.312}
-								[0..2]
-									F11 
-									F10 
-							F7 {Measure 1.421}
-								optional
-									F12 {Capacity 0}
-					F4 {Capacity -9}
-						optional
-							F9 {Measure -9.693}
 		optional
-			F1 
-				optional
+			F3 {Enabled false}
+		optional
+			F2 {Enabled false}
+		optional
+			F1 {Enabled true, Measure 6.718}
+				[0..3]
 					F6 
+						optional
+							F7 
+								[0..2]
+									F13 {Enabled true, Measure -2.417}
+									F12 {Enabled false}
+					F5 {Enabled false}
+						optional
+							F8 {Enabled false}
+								[0..2]
+									F11 {Enabled true}
+									F10 {Measure -3.926}
+					F4 {Enabled true}
+						optional
+							F9 {Enabled false}
 constraints
-	F12 <=> F8
-	F5 <=> F12
-	! F5 => ! F12
-	! F12 & F1
-	F8 <=> ! F9
+	(F13.Measure SUB F1.Measure) EQUALS (F13.Measure DIV F1.Measure)
+	F8.Enabled | F12.Enabled
+	(F10.Measure DIV F13.Measure) LOWER (F1.Measure SUB F10.Measure)
+	! F11.Enabled | F4.Enabled
+	F7 & ! F2.Enabled
+	(F10.Measure ADD F1.Measure) EQUALS (F1.Measure SUB F10.Measure)
+	F6 | ! F8.Enabled
+	(F13.Measure DIV F10.Measure) EQUALS (F1.Measure SUB F13.Measure)
+	(F10.Measure ADD F13.Measure) EQUALS (F10.Measure ADD F1.Measure)
+	F7 | F4.Enabled
+	(F1.Measure SUB F10.Measure) LOWER_EQUALS (F10.Measure SUB F1.Measure)
+	(F10.Measure DIV F1.Measure) GREATER (F10.Measure SUB F13.Measure)
+	F10 | F7
+	(F13.Measure ADD F1.Measure) GREATER_EQUALS (F13.Measure ADD F10.Measure)
+	F10 <=> F12.Enabled
+	(F13.Measure DIV F1.Measure) LOWER (F13.Measure SUB F10.Measure)
+	(F13.Measure SUB F1.Measure) EQUALS (F13.Measure MUL F1.Measure)
+	! F6 => F3.Enabled
+	(F13.Measure SUB F1.Measure) EQUALS (F10.Measure MUL F1.Measure)

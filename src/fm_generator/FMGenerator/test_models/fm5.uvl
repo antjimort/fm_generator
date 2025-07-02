@@ -1,36 +1,42 @@
 features
 	F0 
-		[4]
-			F4 
-			F3 
-			F2 
-			F1 {"License Plate" 'st0Ma'}
+		optional
+			F3 {"License Plate" 'kkbLQ'}
+		optional
+			F2 {Enabled true}
+		mandatory
+			F1 {"License Plate" 'hev8ukKK'}
 				[0..4]
-					F8 
-						mandatory
-							F9 
-								[0..2]
-									F16 {Enabled 'False'}
-									F15 
-					F7 
+					F7 {Enabled true}
+					F6 {Enabled false}
+					F5 {Enabled false, Measure 1.44}
 						optional
-							F10 {"License Plate" 'g81KUV'}
+							F8 {Capacity -3, "License Plate" 'y4glVbV1'}
+								[0..3]
+									F15 {Enabled true}
+									F14 {Enabled false}
+									F13 {Enabled true}
+					F4 {Enabled true, Measure -9.614}
+						[0..3]
+							F11 {Enabled true}
+							F10 {Enabled false}
+							F9 {Enabled false, Measure 1.438}
 								optional
-									F14 {Enabled 'False'}
-					F6 {Capacity -10}
-						optional
-							F11 {"License Plate" 'FOPYh1O9'}
-								optional
-									F13 
-					F5 
-						optional
-							F12 {"License Plate" 'P6X5TEQ'}
+									F12 {Enabled true}
 constraints
-	! F4 <=> F3
-	! F9 => F14
-	F6 <=> ! F3
-	! F9 => ! F11
-	F15 <=> ! F14
-	F12 <=> F16
-	F16 <=> F15
-	F8 <=> ! F6
+	(F4.Measure DIV F9.Measure) LOWER (F9.Measure ADD F4.Measure)
+	(F5.Measure MUL F8.Capacity) GREATER (F8.Capacity MUL F9.Measure)
+	F11.Enabled | F1
+	(F4.Measure SUB F5.Measure) LOWER_EQUALS (F4.Measure ADD F5.Measure)
+	F14.Enabled <=> F11.Enabled
+	(F9.Measure MUL F8.Capacity) GREATER_EQUALS (F8.Capacity SUB F9.Measure)
+	F6.Enabled | F4.Enabled
+	(F9.Measure DIV F4.Measure) EQUALS (F5.Measure MUL F9.Measure)
+	"F1.License Plate" EQUALS "F8.License Plate"
+	F12.Enabled | ! F6.Enabled
+	"F3.License Plate" EQUALS "F8.License Plate"
+	(F8.Capacity SUB F9.Measure) LOWER (F8.Capacity DIV F4.Measure)
+	"F3.License Plate" EQUALS "F8.License Plate"
+	(F8.Capacity MUL F4.Measure) LOWER (F8.Capacity SUB F9.Measure)
+	(F8.Capacity SUB F4.Measure) LOWER_EQUALS (F5.Measure DIV F9.Measure)
+	(F8.Capacity MUL F4.Measure) EQUALS (F8.Capacity SUB F9.Measure)

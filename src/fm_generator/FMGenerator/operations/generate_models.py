@@ -37,8 +37,6 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
 
 
 
-import string
-
 def assign_manual_attributes(params: Params, features: list[Feature]) -> None:
     assert params.MIN_ATTRIBUTES is None and params.MAX_ATTRIBUTES is None, (
         "MIN_ATTRIBUTES and MAX_ATTRIBUTES must be None when using manual attributes."
@@ -215,33 +213,98 @@ def generate_hierarchy(params: Params) -> tuple[FeatureModel, list[Feature]]:
     connected = {f.name for f in fm.get_features()}
     return fm, [f for f in features if f.name in connected]
 
+
+
 def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -> None:
-    count = random.randint(params.MIN_CONSTRAINTS, params.MAX_CONSTRAINTS)
-    for i in range(count):
-        if len(features) < 2:
-            break
-        a, b = random.sample(features, 2)
-        op = random.choices(
-            [ASTOperation.IMPLIES, ASTOperation.AND, ASTOperation.OR, ASTOperation.EQUIVALENCE],
-            weights=[
-                params.PROB_IMPLICATION,
-                params.PROB_AND,
-                params.PROB_OR_CT,
-                params.PROB_EQUIVALENCE
-            ],
-            k=1
-        )[0]
+    # Recopilar todos los attributes presentes en el FM y que son usables en constraints
+    attrs_bool = []
+    attrs_num = []
+    attrs_str = []
 
-        left = Node(a.name)
-        right = Node(b.name)
+    for feat in features:
+        for attr in getattr(feat, "attributes", []):
+            # Buscar en la lista de attributes manuales si está marcado como usable en constraints
+            if hasattr(params, "ATTRIBUTES_LIST"):
+                for attr_dict in params.ATTRIBUTES_LIST:
+                    if (attr_dict.get("name") == attr.name 
+                        and attr_dict.get("use_in_constraints", False)
+                        and feat.name and attr.name):
+                        t = attr_dict.get("type", "").lower()
+                        if t == "boolean":
+                            attrs_bool.append((feat, attr))
+                        elif t == "integer" or t == "real":
+                            attrs_num.append((feat, attr))
+                        elif t == "string":
+                            attrs_str.append((feat, attr))
+                        break
 
-        if random.random() < params.PROB_NOT:
-            left = Node(ASTOperation.NOT, left)
-        if random.random() < params.PROB_NOT:
-            right = Node(ASTOperation.NOT, right)
+    # Siempre pueden usarse features booleanas clásicas
+    feats_bool = [f for f in features if hasattr(f, "attributes") and not getattr(f, "attributes", [])]
+    feats_bool += [f for f in features if getattr(f, "attributes", []) and all(a.name.lower() != "enabled" for a in f.attributes)]
 
-        root = Node(op, left, right)
-        fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+    total_ctcs = random.randint(params.MIN_CONSTRAINTS, params.MAX_CONSTRAINTS)
+    for i in range(total_ctcs):
+        # Elige el tipo de constraint: bool, numérica, string
+        types_avail = []
+        if len(attrs_bool) + len(feats_bool) >= 2:
+            types_avail.append("bool")
+        if len(attrs_num) >= 2:
+            types_avail.append("num")
+        if len(attrs_str) >= 2:
+            types_avail.append("string")
+
+        if not types_avail:
+            break  # No se puede hacer nada
+
+        constraint_type = random.choice(types_avail)
+
+        if constraint_type == "bool":
+            # Features y attributes booleanos se pueden combinar
+            pool = [(f.name,) for f in feats_bool] + [(f.name, a.name) for f, a in attrs_bool]
+            left_ids = random.sample(pool, 2)
+            def id_to_str(tpl):
+                if len(tpl) == 1:
+                    return tpl[0]
+                else:
+                    return f"{tpl[0]}.{tpl[1]}"
+            left = Node(id_to_str(left_ids[0]))
+            right = Node(id_to_str(left_ids[1]))
+            op = random.choice([ASTOperation.IMPLIES, ASTOperation.AND, ASTOperation.OR, ASTOperation.EQUIVALENCE])
+            if random.random() < params.PROB_NOT:
+                left = Node(ASTOperation.NOT, left)
+            if random.random() < params.PROB_NOT:
+                right = Node(ASTOperation.NOT, right)
+            root = Node(op, left, right)
+            fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+
+        elif constraint_type == "num":
+            # Solo attributes numéricos (int, real), ambos pueden mezclarse
+            (f1, a1), (f2, a2) = random.sample(attrs_num, 2)
+            left = Node(f"{f1.name}.{a1.name}")
+            right = Node(f"{f2.name}.{a2.name}")
+            # Operadores aritméticos y comparadores
+            # Elige una expresión como: (A+B) == (C-D), etc.
+            arithmetic_ops = [ASTOperation.ADD, ASTOperation.SUB, ASTOperation.MUL, ASTOperation.DIV]
+            cmp_ops = [ASTOperation.EQUALS, ASTOperation.GREATER, ASTOperation.LOWER, ASTOperation.GREATER_EQUALS, ASTOperation.LOWER_EQUALS]
+            op1 = random.choice(arithmetic_ops)
+            op2 = random.choice(arithmetic_ops)
+            cmp_op = random.choice(cmp_ops)
+            # Ejemplo: (A op1 B) cmp_op (C op2 D)
+            expr_left = Node(op1, left, right)
+            (f3, a3), (f4, a4) = random.sample(attrs_num, 2)
+            expr_right = Node(op2, Node(f"{f3.name}.{a3.name}"), Node(f"{f4.name}.{a4.name}"))
+            root = Node(cmp_op, expr_left, expr_right)
+            fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+
+        elif constraint_type == "string":
+            (f1, a1), (f2, a2) = random.sample(attrs_str, 2)
+            # Solo igualdad
+            left = Node(f"{f1.name}.{a1.name}")
+            right = Node(f"{f2.name}.{a2.name}")
+            root = Node(ASTOperation.EQUALS, left, right)
+            fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+
+
 
 def generate_single_model(params: Params, index: int) -> FeatureModel:
     random.seed(params.SEED + index)

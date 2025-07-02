@@ -31,40 +31,45 @@ if __name__ == "__main__":
     attr1 = {
         'name': 'Enabled',
         'type': 'Boolean',
-        'value': ['True', 'False'],
+        'value': [True, False],
         'min_value': '0',
         'max_value': '0',
-        'attach_probability': '0.1'
+        'attach_probability': '0.8',
+        'use_in_constraints': True
+        
     }
 
     # Atributo entero
     attr2 = {
         'name': 'Capacity',
         'type': 'Integer',
-        'value': 'True',
+        'value': [True],
         'min_value': '-10',
         'max_value': '10',
-        'attach_probability': '0.1'
+        'attach_probability': '0.1',
+        'use_in_constraints': True
     }
 
     # Atributo real
     attr3 = {
         'name': 'Measure',
         'type': 'Real',
-        'value': 'True',
+        'value': [True],
         'min_value': '-10.0',
         'max_value': '10.0',
-        'attach_probability': '0.1'
+        'attach_probability': '0.1',
+        'use_in_constraints': False
     }
 
     # Atributo string
     attr4 = {
         'name': 'License Plate',
         'type': 'String',
-        'value': 'True',
+        'value': [True],
         'min_value': '5',
         'max_value': '10',
-        'attach_probability': '0.1'
+        'attach_probability': '0.1',
+        'use_in_constraints': True
     }
 
     # Lista de atributos y configuraciones asociadas
@@ -75,7 +80,7 @@ if __name__ == "__main__":
 
     params = Params(
         NUM_MODELS=6,
-        SEED=183,
+        SEED=13299,
         # ENSURE_SATISFIABLE=True,
         NAME_PREFIX="fm",
         # INCLUDE_FEATURE_COUNT_SUFFIX=True,
@@ -109,8 +114,8 @@ if __name__ == "__main__":
         GROUP_CARDINALITY_MIN=3,
         GROUP_CARDINALITY_MAX=7,
 
-        MIN_CONSTRAINTS=5,
-        MAX_CONSTRAINTS=10,
+        MIN_CONSTRAINTS=10,
+        MAX_CONSTRAINTS=20,
         EXTRA_CONSTRAINT_REPRESENTATIVENESS=0.5,
         MIN_VARS_PER_CONSTRAINT=1,
         MAX_VARS_PER_CONSTRAINT=3,
