@@ -242,6 +242,16 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
     feats_bool = [f for f in features if hasattr(f, "attributes") and not getattr(f, "attributes", [])]
     feats_bool += [f for f in features if getattr(f, "attributes", []) and all(a.name.lower() != "enabled" for a in f.attributes)]
 
+    # --- NUEVO: contadores de apariciones
+    max_reps = getattr(params, "EXTRA_CONSTRAINT_REPRESENTATIVENESS", 1)
+    appear_counts = {}  # key: str (feature o feature.attr), value: count
+
+    def can_add(key):
+        return appear_counts.get(key, 0) < max_reps
+
+    def inc(key):
+        appear_counts[key] = appear_counts.get(key, 0) + 1
+
     total_ctcs = random.randint(params.MIN_CONSTRAINTS, params.MAX_CONSTRAINTS)
     for i in range(total_ctcs):
         # Elige el tipo de constraint: bool, numérica, string
@@ -261,14 +271,20 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         if constraint_type == "bool":
             # Features y attributes booleanos se pueden combinar
             pool = [(f.name,) for f in feats_bool] + [(f.name, a.name) for f, a in attrs_bool]
-            left_ids = random.sample(pool, 2)
+            # --- Filtrar según representativeness
+            valid = [tpl for tpl in pool if can_add(".".join(tpl))]
+            if len(valid) < 2:
+                continue
+            left_ids, right_ids = random.sample(valid, 2)
             def id_to_str(tpl):
                 if len(tpl) == 1:
                     return tpl[0]
                 else:
                     return f"{tpl[0]}.{tpl[1]}"
-            left = Node(id_to_str(left_ids[0]))
-            right = Node(id_to_str(left_ids[1]))
+            left_key = id_to_str(left_ids)
+            right_key = id_to_str(right_ids)
+            left = Node(left_key)
+            right = Node(right_key)
             op = random.choice([ASTOperation.IMPLIES, ASTOperation.AND, ASTOperation.OR, ASTOperation.EQUIVALENCE])
             if random.random() < params.PROB_NOT:
                 left = Node(ASTOperation.NOT, left)
@@ -276,33 +292,53 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                 right = Node(ASTOperation.NOT, right)
             root = Node(op, left, right)
             fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+            inc(left_key)
+            inc(right_key)
 
         elif constraint_type == "num":
-            # Solo attributes numéricos (int, real), ambos pueden mezclarse
-            (f1, a1), (f2, a2) = random.sample(attrs_num, 2)
-            left = Node(f"{f1.name}.{a1.name}")
-            right = Node(f"{f2.name}.{a2.name}")
+            pool = [(f.name, a.name) for f, a in attrs_num]
+            # --- Filtrar según representativeness
+            valid = [tpl for tpl in pool if can_add(f"{tpl[0]}.{tpl[1]}")]
+            if len(valid) < 4:
+                continue
+            selected = random.sample(valid, 4)
+            (f1, a1), (f2, a2), (f3, a3), (f4, a4) = selected
+            left_key = f"{f1}.{a1}"
+            right_key = f"{f2}.{a2}"
+            left = Node(left_key)
+            right = Node(right_key)
             # Operadores aritméticos y comparadores
-            # Elige una expresión como: (A+B) == (C-D), etc.
             arithmetic_ops = [ASTOperation.ADD, ASTOperation.SUB, ASTOperation.MUL, ASTOperation.DIV]
             cmp_ops = [ASTOperation.EQUALS, ASTOperation.GREATER, ASTOperation.LOWER, ASTOperation.GREATER_EQUALS, ASTOperation.LOWER_EQUALS]
             op1 = random.choice(arithmetic_ops)
             op2 = random.choice(arithmetic_ops)
             cmp_op = random.choice(cmp_ops)
-            # Ejemplo: (A op1 B) cmp_op (C op2 D)
             expr_left = Node(op1, left, right)
-            (f3, a3), (f4, a4) = random.sample(attrs_num, 2)
-            expr_right = Node(op2, Node(f"{f3.name}.{a3.name}"), Node(f"{f4.name}.{a4.name}"))
+            third_key = f"{f3}.{a3}"
+            fourth_key = f"{f4}.{a4}"
+            expr_right = Node(op2, Node(third_key), Node(fourth_key))
             root = Node(cmp_op, expr_left, expr_right)
             fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+            inc(left_key)
+            inc(right_key)
+            inc(third_key)
+            inc(fourth_key)
 
         elif constraint_type == "string":
-            (f1, a1), (f2, a2) = random.sample(attrs_str, 2)
-            # Solo igualdad
-            left = Node(f"{f1.name}.{a1.name}")
-            right = Node(f"{f2.name}.{a2.name}")
+            pool = [(f.name, a.name) for f, a in attrs_str]
+            valid = [tpl for tpl in pool if can_add(f"{tpl[0]}.{tpl[1]}")]
+            if len(valid) < 2:
+                continue
+            (f1, a1), (f2, a2) = random.sample(valid, 2)
+            left_key = f"{f1}.{a1}"
+            right_key = f"{f2}.{a2}"
+            left = Node(left_key)
+            right = Node(right_key)
             root = Node(ASTOperation.EQUALS, left, right)
             fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+            inc(left_key)
+            inc(right_key)
+
 
 
 

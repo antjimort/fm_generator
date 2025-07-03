@@ -1,46 +1,16 @@
 features
 	F0 
-		[0..4]
-			F4 {Enabled false}
-			F3 {Enabled true}
+		optional
+			F1 {Enabled true, Capacity -2}
 				optional
-					F5 {Enabled true}
-						[0..2]
-							F12 {Enabled false}
-							F11 {Enabled false}
-								mandatory
-									F13 
-			F2 {Enabled false}
-				optional
-					F6 {Enabled true}
+					F2 {Enabled true}
 						optional
-							F10 {Enabled true, Measure -5.96}
+							F3 {Enabled true}
 								optional
-									F14 {Enabled true, Capacity 9}
-			F1 {Enabled true}
-				alternative
-					F8 {Enabled false}
-					F7 
-						optional
-							F9 {Enabled false, Capacity 7}
-								[0..2]
-									F16 {Enabled false}
-									F15 {Enabled true, Capacity 1}
+									F4 {Enabled true, Capacity 2}
 constraints
-	F13 | F16.Enabled
-	F3.Enabled <=> ! F8.Enabled
-	(F15.Capacity DIV F14.Capacity) EQUALS (F9.Capacity SUB F15.Capacity)
-	F1.Enabled & F13
-	F15.Enabled <=> F6.Enabled
-	(F9.Capacity DIV F10.Measure) GREATER (F9.Capacity MUL F15.Capacity)
-	F1.Enabled => F16.Enabled
-	(F15.Capacity DIV F10.Measure) LOWER (F9.Capacity SUB F15.Capacity)
-	(F10.Measure MUL F14.Capacity) GREATER_EQUALS (F10.Measure MUL F9.Capacity)
-	! F7 => ! F5.Enabled
-	(F10.Measure MUL F9.Capacity) GREATER (F9.Capacity SUB F10.Measure)
-	(F9.Capacity MUL F14.Capacity) GREATER (F9.Capacity SUB F10.Measure)
-	F5.Enabled <=> ! F10.Enabled
-	(F15.Capacity ADD F10.Measure) GREATER (F10.Measure MUL F15.Capacity)
-	(F9.Capacity MUL F14.Capacity) GREATER_EQUALS (F15.Capacity MUL F9.Capacity)
-	F7 | ! F4.Enabled
-	F2.Enabled => F9.Enabled
+	F1.Enabled => F2.Enabled
+	F1.Enabled <=> F3.Enabled
+	F4.Enabled & ! F2.Enabled
+	F3.Enabled => ! F1.Enabled
+	F3.Enabled => ! F2.Enabled

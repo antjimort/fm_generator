@@ -1,31 +1,17 @@
 features
 	F0 
-		[0..2]
-			F2 
+		optional
 			F1 
-				[0..2]
-					F4 {Enabled false}
-						mandatory
-							F6 {Enabled true}
-								optional
-									F9 {Enabled true, Measure 4.36}
-					F3 {Enabled true}
-						mandatory
-							F7 {Enabled false}
-								optional
-									F8 {Enabled true}
+				optional
+					F2 {Enabled false}
 						optional
-							F5 
-								mandatory
-									F10 {Enabled false}
+							F3 
+								optional
+									F4 {Enabled true, Measure -1.544}
 constraints
-	F4.Enabled & F9.Enabled
-	F8.Enabled | F4.Enabled
-	F9.Enabled & F3.Enabled
-	F9.Enabled & F3.Enabled
-	F2 & F3.Enabled
-	F5 <=> F10.Enabled
-	F5 <=> ! F10.Enabled
-	F6.Enabled & F4.Enabled
-	F7.Enabled <=> ! F1
-	F1 & F6.Enabled
+	F3 => F2.Enabled
+	! F4.Enabled | F1
+	! F1 <=> F3
+	F4.Enabled <=> F3
+	F4.Enabled <=> ! F2.Enabled
+	F2.Enabled & F1

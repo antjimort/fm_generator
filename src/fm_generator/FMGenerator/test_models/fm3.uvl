@@ -1,35 +1,17 @@
 features
 	F0 
-		[0..2]
-			F3 {Enabled true}
-			F2 {Enabled false, Capacity 2}
-		mandatory
-			F1 {Enabled true, Capacity 1}
-				[0..3]
-					F6 {Enabled false}
-					F5 {Enabled false, Capacity -8}
+		optional
+			F1 {Enabled true}
+				optional
+					F2 
 						optional
-							F7 {Enabled true}
+							F3 {Enabled false}
 								optional
-									F12 {Enabled true}
-					F4 {"License Plate" 'ognkY4V'}
-						[0..2]
-							F9 {Enabled true}
-							F8 {Enabled true}
-								[0..2]
-									F11 {Enabled true, "License Plate" 'InoICQ'}
-									F10 {Enabled true}
+									F4 
 constraints
-	(F1.Capacity MUL F5.Capacity) GREATER (F1.Capacity SUB F5.Capacity)
-	(F1.Capacity DIV F2.Capacity) EQUALS (F5.Capacity DIV F2.Capacity)
-	F11.Enabled & F9.Enabled
-	! F11.Enabled => ! F3.Enabled
-	F6.Enabled | F2.Enabled
-	! F12.Enabled | F11.Enabled
-	F9.Enabled | ! F11.Enabled
-	"F11.License Plate" EQUALS "F4.License Plate"
-	F9.Enabled & F3.Enabled
-	F10.Enabled => F3.Enabled
-	(F5.Capacity SUB F1.Capacity) GREATER_EQUALS (F1.Capacity SUB F5.Capacity)
-	"F4.License Plate" EQUALS "F11.License Plate"
-	! F4 => ! F3.Enabled
+	F2 => F1.Enabled
+	F3.Enabled & F4
+	! F3.Enabled | ! F2
+	! F4 <=> F3.Enabled
+	F1.Enabled => F4
+	F2 & ! F1.Enabled

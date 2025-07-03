@@ -1,44 +1,16 @@
 features
 	F0 
-		[0..2]
-			F3 {Enabled true}
-				optional
-					F4 {Enabled true}
-						[0..2]
-							F9 {Enabled false, Measure -6.456}
-							F8 {Enabled false}
-			F2 {Enabled true}
-				optional
-					F5 {Enabled false}
-						optional
-							F7 {Enabled true}
-								[0..4]
-									F13 
-									F12 {Enabled false}
-									F11 {Enabled true, Measure -6.418}
-									F10 {Capacity -7}
 		optional
-			F1 {Enabled false}
+			F1 {Enabled true}
 				optional
-					F6 {Enabled true, Capacity -3}
+					F2 {Enabled true}
+						optional
+							F3 
+								optional
+									F4 {Enabled false, "License Plate" 'WbfXQQbAY6'}
 constraints
-	(F6.Capacity ADD F10.Capacity) LOWER (F6.Capacity MUL F9.Measure)
-	F13 => F12.Enabled
-	(F6.Capacity SUB F10.Capacity) EQUALS (F9.Measure SUB F11.Measure)
-	! F4.Enabled | F3.Enabled
-	F6.Enabled & F9.Enabled
-	(F10.Capacity ADD F6.Capacity) LOWER_EQUALS (F6.Capacity MUL F9.Measure)
-	! F4.Enabled | F6.Enabled
-	F11.Enabled & F1.Enabled
-	! F10 & ! F11.Enabled
-	F2.Enabled => F7.Enabled
-	(F11.Measure DIV F10.Capacity) LOWER_EQUALS (F10.Capacity MUL F11.Measure)
-	F11.Enabled | F3.Enabled
-	! F10 <=> F3.Enabled
-	! F4.Enabled <=> F9.Enabled
-	! F10 | F12.Enabled
-	! F6.Enabled <=> F2.Enabled
-	F2.Enabled | ! F12.Enabled
-	(F10.Capacity ADD F6.Capacity) EQUALS (F10.Capacity ADD F11.Measure)
-	(F9.Measure DIV F11.Measure) EQUALS (F6.Capacity SUB F9.Measure)
-	(F11.Measure SUB F9.Measure) GREATER_EQUALS (F11.Measure DIV F6.Capacity)
+	! F2.Enabled => ! F3
+	F2.Enabled => ! F3
+	! F1.Enabled | F3
+	! F2.Enabled | ! F1.Enabled
+	! F4.Enabled & F1.Enabled

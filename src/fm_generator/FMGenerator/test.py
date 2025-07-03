@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     params = Params(
         NUM_MODELS=6,
-        SEED=13299,
+        SEED=132995,
         # ENSURE_SATISFIABLE=True,
         NAME_PREFIX="fm",
         # INCLUDE_FEATURE_COUNT_SUFFIX=True,
@@ -94,8 +94,8 @@ if __name__ == "__main__":
         AGGREGATE_FUNCTIONS=True,
         STRING_CONSTRAINTS=True,
 
-        MIN_FEATURES=10,
-        MAX_FEATURES=16,
+        MIN_FEATURES=4,
+        MAX_FEATURES=4,
         DIST_BOOLEAN=0.4,
         DIST_INTEGER=0.2,
         DIST_REAL=0.2,
@@ -114,9 +114,9 @@ if __name__ == "__main__":
         GROUP_CARDINALITY_MIN=3,
         GROUP_CARDINALITY_MAX=7,
 
-        MIN_CONSTRAINTS=10,
-        MAX_CONSTRAINTS=20,
-        EXTRA_CONSTRAINT_REPRESENTATIVENESS=0.5,
+        MIN_CONSTRAINTS=30,
+        MAX_CONSTRAINTS=30,
+        EXTRA_CONSTRAINT_REPRESENTATIVENESS=3,
         MIN_VARS_PER_CONSTRAINT=1,
         MAX_VARS_PER_CONSTRAINT=3,
 
