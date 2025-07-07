@@ -1,17 +1,56 @@
 features
 	F0 
 		optional
-			F1 {Enabled true}
-				optional
-					F2 
-						optional
-							F3 {Enabled false}
+			F6 {Enabled true}
+		optional
+			F5 {Enabled false}
+		[0..4]
+			F4 {Enabled false, "License Plate" 'yphC30'}
+			F3 {Enabled true, "License Plate" 'RUh9W'}
+			F2 {Enabled false}
+			F1 
+				[0..7]
+					F13 {Enabled true}
+					F12 {Enabled true}
+					F11 {Enabled true}
+					F10 {Enabled false}
+					F9 {Enabled true, Capacity 0}
+					F8 {Enabled true}
+					F7 {Enabled true}
+						[0..7]
+							F20 {Enabled true}
+							F19 {Enabled false, Measure -7.391}
+							F18 {Enabled false}
+							F17 {Enabled true}
+							F16 {Enabled false}
 								optional
-									F4 
+									F21 {Enabled true}
+							F15 {Enabled true, "License Plate" 'MuRrEBRgdn'}
+								[0..4]
+									F25 
+									F24 {Enabled false}
+									F23 {Enabled false}
+									F22 {Enabled true}
+							F14 
+								[0..2]
+									F27 
+									F26 {Enabled true, Capacity -1}
 constraints
-	F2 => F1.Enabled
-	F3.Enabled & F4
-	! F3.Enabled | ! F2
-	! F4 <=> F3.Enabled
-	F1.Enabled => F4
-	F2 & ! F1.Enabled
+	"F15.License Plate" EQUALS "F3.License Plate"
+	F1 | F5.Enabled
+	F7.Enabled & F20.Enabled
+	! F16.Enabled <=> ! F7.Enabled
+	"F15.License Plate" EQUALS "F4.License Plate"
+	"F15.License Plate" EQUALS "F3.License Plate"
+	F17.Enabled & F5.Enabled
+	"F3.License Plate" EQUALS "F4.License Plate"
+	! F25 & ! F10.Enabled
+	F12.Enabled & F19.Enabled
+	F10.Enabled => ! F22.Enabled
+	! F19.Enabled | F18.Enabled
+	F1 <=> F5.Enabled
+	F23.Enabled => ! F1
+	F11.Enabled & F3.Enabled
+	F14 => F8.Enabled
+	F3.Enabled => F21.Enabled
+	F13.Enabled => ! F21.Enabled
