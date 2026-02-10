@@ -1,41 +1,48 @@
 features
 	F0 
-		[3]
-			F4 {Enabled false}
-			F3 {Enabled false}
-			F2 {Enabled false}
-				[3]
-					F7 {Enabled true}
-					F6 {Enabled false}
-						alternative
-							F12 {Enabled true}
-							F11 {Enabled true}
-								[3]
-									F17 {Enabled true}
-									F16 {Enabled true}
-									F15 {Enabled false, Capacity 7}
-							F10 {Enabled true}
-								[0..2]
-									F19 {Enabled true, Measure -3.476, "License Plate" 'd7PabL25'}
-									F18 {Enabled false}
-					F5 {Enabled true}
-						[2]
-							F14 {Enabled false}
-							F13 {Enabled true}
-		mandatory
-			F1 {Measure -7.775}
+		[2]
+			F4 {Enabled true}
+			F3 
 				[2]
-					F9 {Enabled true, Capacity 4}
-					F8 {Enabled true, "License Plate" '62YvwZVlLg'}
+					F6 {Enabled false, Measure 0.329, "License Plate" 'sZ7Any'}
+					F5 {Enabled true}
+						alternative
+							F14 {Enabled true}
+							F13 {Enabled true}
+							F12 {Enabled false}
+							F11 
+								or
+									F17 {Enabled true}
+									F16 {Enabled false}
+									F15 {Enabled false}
+							F10 {Enabled true}
+								[2]
+									F19 {Enabled true}
+									F18 {Enabled true}
+		[2]
+			F2 {Enabled false, "License Plate" '0wLMoHu'}
+				mandatory
+					F7 
+			F1 {Enabled true}
+				[2]
+					F9 {Enabled false, "License Plate" 'eIa0zs'}
+					F8 {Enabled false, "License Plate" 'ZWAZTQ7t0C'}
 constraints
-	! F17.Enabled <=> F14.Enabled
-	"F19.License Plate" EQUALS "F8.License Plate"
-	"F8.License Plate" EQUALS "F19.License Plate"
-	F3.Enabled <=> F4.Enabled
-	F12.Enabled & F7.Enabled
-	"F8.License Plate" EQUALS "F19.License Plate"
-	F14.Enabled & ! F18.Enabled
-	F9.Enabled <=> F15.Enabled
-	F1 & F13.Enabled
-	F6.Enabled => F14.Enabled
-	! F5.Enabled => F18.Enabled
+	F2.Enabled => F15.Enabled
+	! F10.Enabled <=> ! F14.Enabled
+	"F8.License Plate" EQUALS "F6.License Plate"
+	F5.Enabled & F2.Enabled
+	"F8.License Plate" EQUALS "F2.License Plate"
+	"F8.License Plate" EQUALS "F6.License Plate"
+	"F6.License Plate" EQUALS "F9.License Plate"
+	"F9.License Plate" EQUALS "F2.License Plate"
+	"F2.License Plate" EQUALS "F9.License Plate"
+	F12.Enabled <=> F2.Enabled
+	F16.Enabled <=> F11
+	! F4.Enabled <=> F7
+	F19.Enabled => F12.Enabled
+	F11 <=> ! F19.Enabled
+	F17.Enabled & F13.Enabled
+	! F3 => F18.Enabled
+	F3 <=> F5.Enabled
+	F14.Enabled | ! F13.Enabled

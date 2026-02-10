@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     params = Params(
         NUM_MODELS=6,
-        SEED=2815,
+        SEED=281509,
         # ENSURE_SATISFIABLE=True,
         NAME_PREFIX="fm",
         # INCLUDE_FEATURE_COUNT_SUFFIX=True,

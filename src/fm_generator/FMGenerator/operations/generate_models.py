@@ -140,29 +140,36 @@ def select_relation_types(params: Params, total: int) -> list[str]:
 def determine_group_size(pool_size: int, params: Params) -> int:
     return random.randint(1, min(params.GROUP_CARDINALITY_MAX, pool_size))
 
-def create_relation(parent: Feature, children: list[Feature], rel_kind: str, params: Params) -> Relation:
+def create_relation(parent: Feature, children: list[Feature], rel_kind: str, params: Params) -> list[Relation]:
     size = len(children)
-    if rel_kind == 'mand': # Revisar
-        return Relation(parent=parent, children=children, card_min=size, card_max=size)
-    if rel_kind == 'opt':
-        if size == 1: # Revisar
-            return Relation(parent=parent, children=children, card_min=0, card_max=1)
-        else:
-            return Relation(parent=parent, children=children, card_min=0, card_max=size)
-    if rel_kind == 'alt':
-        return Relation(parent=parent, children=children, card_min=1, card_max=1)
-    if rel_kind == 'or':
-        return Relation(parent=parent, children=children, card_min=1, card_max=size)
-
-    # group cardinality
-    min_bound = max(params.GROUP_CARDINALITY_MIN, 1)
-    max_bound = size
-    if min_bound > max_bound:
-        min_bound = max_bound
-    card_min = random.randint(min_bound, max_bound)
-    card_max = random.randint(card_min, max_bound)
-
-    return Relation(parent=parent, children=children, card_min=card_min, card_max=card_max)
+    relations = []
+    if rel_kind == 'mand':
+        # Una relación mandatory por cada hijo
+        for child in children:
+            rel = Relation(parent=parent, children=[child], card_min=1, card_max=1)
+            relations.append(rel)
+    elif rel_kind == 'opt':
+        # Una relación optional por cada hijo
+        for child in children:
+            rel = Relation(parent=parent, children=[child], card_min=0, card_max=1)
+            relations.append(rel)
+    elif rel_kind == 'alt':
+        rel = Relation(parent=parent, children=children, card_min=1, card_max=1)
+        relations.append(rel)
+    elif rel_kind == 'or':
+        rel = Relation(parent=parent, children=children, card_min=1, card_max=size)
+        relations.append(rel)
+    else:
+        # group cardinality
+        min_bound = max(params.GROUP_CARDINALITY_MIN, 1)
+        max_bound = size
+        if min_bound > max_bound:
+            min_bound = max_bound
+        card_min = random.randint(min_bound, max_bound)
+        card_max = random.randint(card_min, max_bound)
+        rel = Relation(parent=parent, children=children, card_min=card_min, card_max=card_max)
+        relations.append(rel)
+    return relations
 
 def add_relations_to_level(parents: list[Feature], children: list[Feature], params: Params) -> None:
     total = len(children)
@@ -170,17 +177,19 @@ def add_relations_to_level(parents: list[Feature], children: list[Feature], para
     random.shuffle(rel_types)
     pool = children[:]
     parent_idx = 0
-    for rel_kind in rel_types:
-        if not pool:
-            break
+    while pool:
+        rel_kind = rel_types[parent_idx % len(rel_types)]
         parent = parents[parent_idx % len(parents)]
         parent_idx += 1
         size = determine_group_size(len(pool), params)
         group = [pool.pop() for _ in range(size)]
-        rel = create_relation(parent, group, rel_kind, params)
-        parent.add_relation(rel)
-        for child in group:
-            child.parent = parent
+        relations = create_relation(parent, group, rel_kind, params)
+        for rel in relations:
+            parent.add_relation(rel)
+            # Relación puede ser con uno o varios hijos (pero mand/opt siempre de uno en uno)
+            for child in rel.children:
+                child.parent = parent
+
 
 def generate_hierarchy(params: Params) -> tuple[FeatureModel, list[Feature]]:
     root = Feature(name="F0")
