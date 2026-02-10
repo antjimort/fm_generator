@@ -1,17 +1,56 @@
 features
 	F0 
-		optional
+		or
+			F4 {Enabled false}
+			F3 {Enabled false}
+			F2 {Enabled true}
+				[2]
+					F6 {Enabled false}
+					F5 {Enabled true}
+						[5]
+							F14 {Capacity 10}
+							F13 {Enabled false}
+							F12 {Enabled false}
+							F11 {Enabled false, Measure 5.729}
+								mandatory
+									F15 {Measure 7.622}
+							F10 
+								alternative
+									F19 
+									F18 {Enabled true}
+									F17 {Enabled false, Measure 1.303}
+									F16 {Measure 0.32}
 			F1 {Enabled true}
-				optional
-					F2 
-						optional
-							F3 
-								optional
-									F4 
+				[3]
+					F9 {Enabled false, Measure -5.167}
+					F8 {Enabled false}
+					F7 {Enabled false}
 constraints
-	! F1.Enabled <=> F2
-	! F3 => F2
-	F4 | F3
-	F3 & F2
-	F4 <=> F1.Enabled
-	F4 <=> ! F1.Enabled
+	F18.Enabled <=> ! F2.Enabled
+	F13.Enabled & F9.Enabled
+	F16 => F12.Enabled
+	F7.Enabled & F15
+	! F13.Enabled <=> F1.Enabled
+	F11.Enabled & F17.Enabled
+	F16 => ! F5.Enabled
+	F4.Enabled => ! F11.Enabled
+	F5.Enabled => F8.Enabled
+	! F1.Enabled => F19
+	! F13.Enabled => F17.Enabled
+	! F3.Enabled & F15
+	F3.Enabled | F2.Enabled
+	F8.Enabled <=> F14
+	! F9.Enabled => ! F1.Enabled
+	F3.Enabled => F19
+	F17.Enabled | F5.Enabled
+	F10 & F4.Enabled
+	F9.Enabled & F15
+	! F4.Enabled => F11.Enabled
+	F6.Enabled & ! F16
+	F6.Enabled <=> F10
+	F8.Enabled & F10
+	! F18.Enabled <=> F6.Enabled
+	F12.Enabled => F7.Enabled
+	! F12.Enabled & F18.Enabled
+	F2.Enabled <=> ! F19
+	! F14 <=> ! F7.Enabled

@@ -1,17 +1,50 @@
 features
 	F0 
-		optional
-			F1 
-				optional
-					F2 {Enabled false}
-						optional
-							F3 
-								optional
-									F4 {Enabled true, Measure -1.544}
+		[3]
+			F4 {Enabled false, Capacity 8}
+			F3 {Enabled true}
+				mandatory
+					F5 {Enabled false}
+						[3]
+							F13 {Enabled false}
+							F12 {Enabled true}
+							F11 {Enabled false, Capacity 0}
+								[2]
+									F15 {Enabled true}
+									F14 {Enabled false}
+							F10 {Enabled false}
+								[2]
+									F17 {Capacity 0}
+									F16 {Capacity -1}
+			F2 {Enabled false}
+				mandatory
+					F6 {Enabled false, Measure -7.089}
+						mandatory
+							F9 {Enabled true}
+								mandatory
+									F18 {Enabled false}
+		mandatory
+			F1 {Enabled true}
+				[2]
+					F8 {Enabled true}
+					F7 {Enabled false, Measure -9.069}
 constraints
-	F3 => F2.Enabled
-	! F4.Enabled | F1
-	! F1 <=> F3
-	F4.Enabled <=> F3
-	F4.Enabled <=> ! F2.Enabled
-	F2.Enabled & F1
+	(F17.Capacity ADD F16.Capacity) LOWER_EQUALS (F4.Capacity ADD F11.Capacity)
+	(F4.Capacity MUL F16.Capacity) GREATER_EQUALS (F17.Capacity MUL F11.Capacity)
+	(F16.Capacity DIV F11.Capacity) EQUALS (F4.Capacity ADD F17.Capacity)
+	! F6.Enabled => F3.Enabled
+	F13.Enabled <=> F7.Enabled
+	F4.Enabled & ! F12.Enabled
+	F8.Enabled => F5.Enabled
+	F16 <=> F15.Enabled
+	F11.Enabled & F15.Enabled
+	! F5.Enabled <=> ! F11.Enabled
+	F15.Enabled => F8.Enabled
+	! F2.Enabled | ! F1.Enabled
+	F9.Enabled | ! F2.Enabled
+	F6.Enabled & F12.Enabled
+	F6.Enabled => ! F10.Enabled
+	F8.Enabled & F5.Enabled
+	F7.Enabled <=> F3.Enabled
+	F11.Enabled & ! F3.Enabled
+	F9.Enabled | F4.Enabled

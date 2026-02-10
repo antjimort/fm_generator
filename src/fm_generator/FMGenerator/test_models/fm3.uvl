@@ -1,17 +1,48 @@
 features
 	F0 
+		[2]
+			F3 {Enabled true}
+			F2 {Enabled true}
+				[3]
+					F6 {Enabled false}
+					F5 {Enabled true}
+						[3]
+							F10 {Enabled true}
+							F9 {Enabled false, "License Plate" 'BpItSHQJ'}
+								mandatory
+									F12 
+							F8 {Enabled true, Capacity 1, Measure -3.033}
+								[0..3]
+									F15 {Enabled false}
+									F14 
+									F13 {Enabled true}
+					F4 {Enabled true}
+						mandatory
+							F11 {Enabled true}
 		optional
 			F1 {Enabled true}
-				optional
-					F2 
-						optional
-							F3 {Enabled false}
-								optional
-									F4 
+				mandatory
+					F7 {Enabled false}
 constraints
-	F2 => F1.Enabled
-	F3.Enabled & F4
-	! F3.Enabled | ! F2
-	! F4 <=> F3.Enabled
-	F1.Enabled => F4
-	F2 & ! F1.Enabled
+	F11.Enabled => ! F3.Enabled
+	F12 | F14
+	! F8.Enabled & F7.Enabled
+	F7.Enabled | F4.Enabled
+	! F7.Enabled & ! F8.Enabled
+	F11.Enabled <=> F9.Enabled
+	F4.Enabled & F9.Enabled
+	! F9.Enabled & F11.Enabled
+	F10.Enabled <=> F3.Enabled
+	F1.Enabled | F12
+	! F1.Enabled => F15.Enabled
+	F6.Enabled | F12
+	! F3.Enabled => ! F13.Enabled
+	F4.Enabled <=> F10.Enabled
+	F10.Enabled & F13.Enabled
+	! F13.Enabled | F6.Enabled
+	F1.Enabled <=> ! F15.Enabled
+	! F2.Enabled | F14
+	F14 <=> F6.Enabled
+	F15.Enabled => F2.Enabled
+	F2.Enabled <=> ! F5.Enabled
+	F5.Enabled & ! F8.Enabled

@@ -17,6 +17,7 @@ class FmgeneratorModel(VariabilityModel):
         self.params = params
 
     def generate_models(self, output_dir: str) -> list[FeatureModel]:
+        print(self.params)
         fms = [
             generate_single_model(self.params, i) for i in range(self.params.NUM_MODELS)
         ]
