@@ -62,19 +62,19 @@ class Params:
     PROB_IMPLICATION: float = 0.2
     PROB_EQUIVALENCE: float = 0.2
 
-    PROB_SUM: float = 0.1
-    PROB_SUBSTRACT: float = 0.1
+    PROB_SUM: float = 0.7
+    PROB_SUBSTRACT: float = 0.2
     PROB_MULTIPLY: float = 0.1
-    PROB_DIVIDE: float = 0.1
+    PROB_DIVIDE: float = 0.0
     
     PROB_EQUALS: float = 0.1
-    PROB_LESS: float = 0.1
-    PROB_GREATER: float = 0.1
-    PROB_LESS_EQUALS: float = 0.1
-    PROB_GREATER_EQUALS: float = 0.1
-    PROB_SUM_FUNCTION: float = 0.1
-    PROB_AVG_FUNCTION: float = 0.1
-    PROB_LEN_FUNCTION: float = 0.1
+    PROB_LESS: float = 0.2
+    PROB_GREATER: float = 0.7
+    PROB_LESS_EQUALS: float = 0.0
+    PROB_GREATER_EQUALS: float = 0.0
+    PROB_SUM_FUNCTION: float = 0.0
+    PROB_AVG_FUNCTION: float = 0.0
+    PROB_LEN_FUNCTION: float = 0.0
 
     # Paso 4: Atributos
     RANDOM_ATTRIBUTES: bool = True
@@ -113,8 +113,8 @@ class Params:
             raise ValueError(
                 f"[ERROR] La suma de las probabilidades de relación no es 1.0 (actual: {total})"
             )
-        
-            # --- Validación de suma de probabilidades de constraints booleanas ---
+
+        # --- Validación de suma de probabilidades de constraints booleanas ---
         total_ctc = (
             self.PROB_AND +
             self.PROB_OR_CT +
@@ -126,6 +126,37 @@ class Params:
                 f"[ERROR] La suma de PROB_AND, PROB_OR_CT, PROB_IMPLICATION y PROB_EQUIVALENCE debe ser 1.0 (actual: {total_ctc})"
             )
 
+        # --- Validación de suma de operadores aritméticos ---
+        if self.ARITHMETIC_LEVEL:
+            arithmetic_total = (
+                self.PROB_SUM +
+                self.PROB_SUBSTRACT +
+                self.PROB_MULTIPLY +
+                self.PROB_DIVIDE
+            )
+
+            if self.AGGREGATE_FUNCTIONS:
+                arithmetic_total += (
+                    self.PROB_SUM_FUNCTION +
+                    self.PROB_AVG_FUNCTION
+                )
+
+            if abs(arithmetic_total - 1.0) > 1e-6:
+                raise ValueError(
+                    f"[ERROR] La suma de probabilidades del nivel aritmético debe ser 1.0 (actual: {arithmetic_total})"
+                )
+
+            comparison_total = (
+                self.PROB_EQUALS +
+                self.PROB_LESS +
+                self.PROB_GREATER +
+                self.PROB_LESS_EQUALS +
+                self.PROB_GREATER_EQUALS
+            )
+            if abs(comparison_total - 1.0) > 1e-6:
+                raise ValueError(
+                    f"[ERROR] La suma de probabilidades de comparación debe ser 1.0 (actual: {comparison_total})"
+                )
 
         # --- Validaciones de atributos ---
         if self.RANDOM_ATTRIBUTES:

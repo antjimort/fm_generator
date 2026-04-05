@@ -28,9 +28,14 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
             domain = Domain(ranges=[Range(min_val, max_val)], elements=None)
             default = round(random.uniform(min_val, max_val), 2)
         else:
-            options = ["low", "medium", "high"]
-            domain = Domain(ranges=None, elements=options)
-            default = random.choice(options)
+            min_len = 1
+            max_len = 50
+
+            domain = Domain(ranges=[Range(min_len, max_len)], elements=None)
+
+            length = random.randint(min_len, max_len)
+            letters = string.ascii_letters + string.digits
+            default = ''.join(random.choices(letters, k=length))
 
         attribute = Attribute(name=attr_name, domain=domain, default_value=default)
         attribute.set_parent(feature)
@@ -247,9 +252,14 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                         if t == "boolean":
                             attrs_bool.append((feat, attr))
                         elif t in ("integer", "real"):
-                            attrs_num.append((feat, attr))
+                            if getattr(params, "ARITHMETIC_LEVEL", False):
+                                attrs_num.append((feat, attr))
                         elif t == "string":
-                            attrs_str.append((feat, attr))
+                            if (
+                                getattr(params, "TYPE_LEVEL", False)
+                                and getattr(params, "STRING_CONSTRAINTS", False)
+                            ):
+                                attrs_str.append((feat, attr))
                         break
 
     # Features booleanas “clásicas” (sin atributos)
@@ -405,15 +415,103 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         return out
 
     # -----------------------------
-    # Numeric helper: build arithmetic expr
+    # Numeric helpers
     # -----------------------------
-    def build_arith_expr(keys: list[str]) -> Node:
-        arithmetic_ops = [ASTOperation.ADD, ASTOperation.SUB, ASTOperation.MUL, ASTOperation.DIV]
+    def pick_binary_arith_op() -> ASTOperation:
+        ops = [
+            ASTOperation.ADD,
+            ASTOperation.SUB,
+            ASTOperation.MUL,
+            ASTOperation.DIV,
+        ]
+        weights = [
+            float(getattr(params, "PROB_SUM", 0.7)),
+            float(getattr(params, "PROB_SUBSTRACT", 0.2)),
+            float(getattr(params, "PROB_MULTIPLY", 0.1)),
+            float(getattr(params, "PROB_DIVIDE", 0.0)),
+        ]
+        return random.choices(ops, weights=weights, k=1)[0]
+
+    def pick_cmp_op() -> ASTOperation:
+        ops = [
+            ASTOperation.EQUALS,
+            ASTOperation.LOWER,
+            ASTOperation.GREATER,
+            ASTOperation.LOWER_EQUALS,
+            ASTOperation.GREATER_EQUALS,
+        ]
+        weights = [
+            float(getattr(params, "PROB_EQUALS", 0.1)),
+            float(getattr(params, "PROB_LESS", 0.2)),
+            float(getattr(params, "PROB_GREATER", 0.7)),
+            float(getattr(params, "PROB_LESS_EQUALS", 0.0)),
+            float(getattr(params, "PROB_GREATER_EQUALS", 0.0)),
+        ]
+        return random.choices(ops, weights=weights, k=1)[0]
+
+    def pick_aggregate_name() -> str | None:
+        if not getattr(params, "AGGREGATE_FUNCTIONS", False):
+            return None
+
+        prob_sum_function = float(getattr(params, "PROB_SUM_FUNCTION", 0.0))
+        prob_avg_function = float(getattr(params, "PROB_AVG_FUNCTION", 0.0))
+
+        total = prob_sum_function + prob_avg_function
+        if total <= 0.0:
+            return None
+
+        names = ["sum", "avg"]
+        weights = [prob_sum_function, prob_avg_function]
+        return random.choices(names, weights=weights, k=1)[0]
+
+
+    def build_function_node(func_name: str, keys: list[str]) -> Node:
+        args = ", ".join(keys)
+        return Node(f"{func_name}({args})")
+
+    def build_plain_arith_expr(keys: list[str]) -> Node:
         cur = Node(keys[0])
         for k in keys[1:]:
-            cur = Node(random.choice(arithmetic_ops), cur, Node(k))
+            cur = Node(pick_binary_arith_op(), cur, Node(k))
         return cur
 
+    def maybe_wrap_with_aggregate(expr: Node, keys: list[str]) -> Node:
+        if not getattr(params, "AGGREGATE_FUNCTIONS", False):
+            return expr
+
+        # Solo tiene sentido aplicar aggregates si hay al menos 2 refs
+        if len(keys) < 2:
+            return expr
+
+        prob_basic = (
+            float(getattr(params, "PROB_SUM", 0.0)) +
+            float(getattr(params, "PROB_SUBSTRACT", 0.0)) +
+            float(getattr(params, "PROB_MULTIPLY", 0.0)) +
+            float(getattr(params, "PROB_DIVIDE", 0.0))
+        )
+        prob_agg = (
+            float(getattr(params, "PROB_SUM_FUNCTION", 0.0)) +
+            float(getattr(params, "PROB_AVG_FUNCTION", 0.0))
+        )
+
+        total = prob_basic + prob_agg
+        if total <= 0.0:
+            return expr
+
+        use_aggregate = random.random() < (prob_agg / total)
+        if not use_aggregate:
+            return expr
+
+        agg_name = pick_aggregate_name()
+        if agg_name is None:
+            return expr
+
+        return build_function_node(agg_name, keys)
+
+    def build_arith_expr(keys: list[str]) -> Node:
+        expr = build_plain_arith_expr(keys)
+        expr = maybe_wrap_with_aggregate(expr, keys)
+        return expr
     # -----------------------------
     # Generación de constraints
     # -----------------------------
@@ -484,17 +582,9 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             if not left_keys or not right_keys:
                 continue
 
-            cmp_ops = [
-                ASTOperation.EQUALS,
-                ASTOperation.GREATER,
-                ASTOperation.LOWER,
-                ASTOperation.GREATER_EQUALS,
-                ASTOperation.LOWER_EQUALS,
-            ]
-
             expr_left = build_arith_expr(left_keys)
             expr_right = build_arith_expr(right_keys)
-            root = Node(random.choice(cmp_ops), expr_left, expr_right)
+            root = Node(pick_cmp_op(), expr_left, expr_right)
             fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
 
         # -----------------------------
