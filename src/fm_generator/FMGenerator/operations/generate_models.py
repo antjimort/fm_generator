@@ -238,32 +238,76 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
     attrs_num: list[tuple[Feature, Attribute]] = []
     attrs_str: list[tuple[Feature, Attribute]] = []
 
-    # Attributes usables en constraints (solo manuales marcados use_in_constraints)
+    # Attributes usables en constraints
+    # - Manual attributes: only if use_in_constraints=True
+    # - Random attributes:
+    #     * boolean -> eligible
+    #     * integer/real -> eligible if ARITHMETIC_LEVEL
+    #     * string -> eligible if TYPE_LEVEL and STRING_CONSTRAINTS
     for feat in features:
         for attr in getattr(feat, "attributes", []):
+            attr_type = None
+            use_in_constraints = False
+
+            # -------------------------
+            # Manual attributes
+            # -------------------------
             if hasattr(params, "ATTRIBUTES_LIST"):
                 for attr_dict in params.ATTRIBUTES_LIST:
-                    if (
-                        attr_dict.get("name") == attr.name
-                        and attr_dict.get("use_in_constraints", False)
-                        and feat.name and attr.name
-                    ):
-                        t = (attr_dict.get("type", "") or "").lower()
-                        if t == "boolean":
-                            attrs_bool.append((feat, attr))
-                        elif t in ("integer", "real"):
-                            if getattr(params, "ARITHMETIC_LEVEL", False):
-                                attrs_num.append((feat, attr))
-                        elif t == "string":
-                            if (
-                                getattr(params, "TYPE_LEVEL", False)
-                                and getattr(params, "STRING_CONSTRAINTS", False)
-                            ):
-                                attrs_str.append((feat, attr))
+                    if attr_dict.get("name") == attr.name and feat.name and attr.name:
+                        attr_type = (attr_dict.get("type", "") or "").lower()
+                        use_in_constraints = attr_dict.get("use_in_constraints", False)
                         break
 
-    # Features booleanas “clásicas” (sin atributos)
-    feats_bool = [f for f in features if not getattr(f, "attributes", [])]
+            # -------------------------
+            # Random attributes
+            # -------------------------
+            if attr_type is None:
+                raw_attr_type = getattr(attr, "attribute_type", None)
+
+                if raw_attr_type is not None:
+                    attr_type = getattr(raw_attr_type, "value", str(raw_attr_type)).lower()
+                else:
+                    domain = getattr(attr, "domain", None)
+                    element_list = getattr(domain, "element_list", [])
+                    range_list = getattr(domain, "range_list", [])
+
+                    if element_list:
+                        attr_type = "boolean"
+                    elif range_list:
+                        r = range_list[0]
+                        range_min = getattr(r, "min_value", None)
+                        range_max = getattr(r, "max_value", None)
+
+                        if isinstance(range_min, int) and isinstance(range_max, int):
+                            attr_type = "integer"
+                        else:
+                            attr_type = "real"
+                    else:
+                        attr_type = "string"
+
+                use_in_constraints = True
+
+            if not use_in_constraints:
+                continue
+
+            if attr_type == "boolean":
+                attrs_bool.append((feat, attr))
+
+            elif attr_type in ("integer", "real"):
+                if getattr(params, "ARITHMETIC_LEVEL", False):
+                    attrs_num.append((feat, attr))
+
+            elif attr_type == "string":
+                if (
+                    getattr(params, "TYPE_LEVEL", False)
+                    and getattr(params, "STRING_CONSTRAINTS", False)
+                ):
+                    attrs_str.append((feat, attr))
+
+    # Todas las features pueden aparecer como variables booleanas en constraints,
+    # tengan o no atributos.
+    feats_bool = list(features)
 
     # -----------------------------
     # Params y caps
