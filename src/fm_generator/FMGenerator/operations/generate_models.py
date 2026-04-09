@@ -527,22 +527,17 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         if len(keys) < 2:
             return expr
 
-        prob_basic = (
-            float(getattr(params, "PROB_SUM", 0.0)) +
-            float(getattr(params, "PROB_SUBSTRACT", 0.0)) +
-            float(getattr(params, "PROB_MULTIPLY", 0.0)) +
-            float(getattr(params, "PROB_DIVIDE", 0.0))
-        )
-        prob_agg = (
-            float(getattr(params, "PROB_SUM_FUNCTION", 0.0)) +
-            float(getattr(params, "PROB_AVG_FUNCTION", 0.0))
-        )
+        prob_sum_function = float(getattr(params, "PROB_SUM_FUNCTION", 0.0))
+        prob_avg_function = float(getattr(params, "PROB_AVG_FUNCTION", 0.0))
+        aggregate_total = prob_sum_function + prob_avg_function
 
-        total = prob_basic + prob_agg
-        if total <= 0.0:
+        # Si no hay probabilidad agregada, no se envuelve
+        if aggregate_total <= 0.0:
             return expr
 
-        use_aggregate = random.random() < (prob_agg / total)
+        # La suma de sum() y avg() se interpreta como probabilidad total
+        # de que ESTA constraint aritmética lleve aggregate.
+        use_aggregate = random.random() < min(aggregate_total, 1.0)
         if not use_aggregate:
             return expr
 
