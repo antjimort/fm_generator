@@ -135,16 +135,23 @@ class Params:
                 self.PROB_DIVIDE
             )
 
+            if abs(arithmetic_total - 1.0) > 1e-6:
+                raise ValueError(
+                    f"[ERROR] La suma de probabilidades de los operadores aritméticos debe ser 1.0 "
+                    f"(actual: {arithmetic_total})"
+                )
+
             if self.AGGREGATE_FUNCTIONS:
-                arithmetic_total += (
+                aggregate_total = (
                     self.PROB_SUM_FUNCTION +
                     self.PROB_AVG_FUNCTION
                 )
 
-            if abs(arithmetic_total - 1.0) > 1e-6:
-                raise ValueError(
-                    f"[ERROR] La suma de probabilidades del nivel aritmético debe ser 1.0 (actual: {arithmetic_total})"
-                )
+                if not (0.0 <= aggregate_total <= 1.0 + 1e-6):
+                    raise ValueError(
+                        f"[ERROR] La suma de probabilidades de sum() y avg() debe estar entre 0.0 y 1.0 "
+                        f"(actual: {aggregate_total})"
+                    )
 
             comparison_total = (
                 self.PROB_EQUALS +
