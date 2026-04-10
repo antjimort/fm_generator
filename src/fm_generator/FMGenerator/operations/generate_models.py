@@ -3,7 +3,7 @@ import string
 from enum import Enum
 from dataclasses import dataclass, field
 from flamapy.metamodels.fm_metamodel.models.feature_model import (
-    FeatureModel, Feature, Relation, Constraint, Attribute, Domain, Range
+    FeatureModel, Feature, Relation, Constraint, Attribute, Domain, Range, Cardinality
 )
 from flamapy.core.models.ast import AST, ASTOperation, Node
 from fm_generator.FMGenerator.models.config import Params
@@ -171,27 +171,70 @@ def select_relation_types(params: Params, total: int) -> list[str]:
 def determine_group_size(pool_size: int, params: Params) -> int:
     return random.randint(1, min(params.GROUP_CARDINALITY_MAX, pool_size))
 
+def maybe_apply_feature_cardinality(feature: Feature, params: Params) -> None:
+    if not getattr(params, "FEATURE_CARDINALITY", False):
+        return
+
+    prob = float(getattr(params, "PROB_FEATURE_CARDINALITY", 0.0))
+    if random.random() >= prob:
+        return
+
+    fc_min_cfg = int(getattr(params, "MIN_FEATURE_CARDINALITY", 2))
+    fc_max_cfg = int(getattr(params, "MAX_FEATURE_CARDINALITY", 5))
+
+    if fc_min_cfg > fc_max_cfg:
+        fc_min_cfg = fc_max_cfg
+
+    fc_min = random.randint(fc_min_cfg, fc_max_cfg)
+    fc_max = random.randint(fc_min, fc_max_cfg)
+
+    feature.feature_cardinality = Cardinality(fc_min, fc_max)
+
+def maybe_set_feature_cardinality(feature: Feature, params: Params) -> None:
+    if not getattr(params, "FEATURE_CARDINALITY", False):
+        return
+
+    prob = float(getattr(params, "PROB_FEATURE_CARDINALITY", 0.0))
+    if random.random() >= prob:
+        return
+
+    fc_min_cfg = int(getattr(params, "MIN_FEATURE_CARDINALITY", 2))
+    fc_max_cfg = int(getattr(params, "MAX_FEATURE_CARDINALITY", 5))
+
+    if fc_min_cfg > fc_max_cfg:
+        fc_min_cfg = fc_max_cfg
+
+    fc_min = random.randint(fc_min_cfg, fc_max_cfg)
+    fc_max = random.randint(fc_min, fc_max_cfg)
+
+    # 🔥 AQUÍ ESTÁ LA CLAVE
+    feature.cardinality_min = fc_min
+    feature.cardinality_max = fc_max
+
+
 def create_relation(parent: Feature, children: list[Feature], rel_kind: str, params: Params) -> list[Relation]:
     size = len(children)
     relations = []
+
     if rel_kind == 'mand':
-        # Una relación mandatory por cada hijo
         for child in children:
             rel = Relation(parent=parent, children=[child], card_min=1, card_max=1)
             relations.append(rel)
+
     elif rel_kind == 'opt':
-        # Una relación optional por cada hijo
         for child in children:
             rel = Relation(parent=parent, children=[child], card_min=0, card_max=1)
             relations.append(rel)
+
     elif rel_kind == 'alt':
         rel = Relation(parent=parent, children=children, card_min=1, card_max=1)
         relations.append(rel)
+
     elif rel_kind == 'or':
         rel = Relation(parent=parent, children=children, card_min=1, card_max=size)
         relations.append(rel)
+
     else:
-        # group cardinality
         min_bound = max(params.GROUP_CARDINALITY_MIN, 1)
         max_bound = size
         if min_bound > max_bound:
@@ -200,7 +243,9 @@ def create_relation(parent: Feature, children: list[Feature], rel_kind: str, par
         card_max = random.randint(card_min, max_bound)
         rel = Relation(parent=parent, children=children, card_min=card_min, card_max=card_max)
         relations.append(rel)
+
     return relations
+
 
 def add_relations_to_level(parents: list[Feature], children: list[Feature], params: Params) -> None:
     total = len(children)
@@ -217,9 +262,9 @@ def add_relations_to_level(parents: list[Feature], children: list[Feature], para
         relations = create_relation(parent, group, rel_kind, params)
         for rel in relations:
             parent.add_relation(rel)
-            # Relación puede ser con uno o varios hijos (pero mand/opt siempre de uno en uno)
             for child in rel.children:
                 child.parent = parent
+                maybe_apply_feature_cardinality(child, params)
 
 
 def generate_hierarchy(params: Params) -> tuple[FeatureModel, list[Feature]]:

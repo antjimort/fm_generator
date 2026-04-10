@@ -27,9 +27,9 @@ class Params:
     DIST_REAL: float = 0.1
     DIST_STRING: float = 0.1
 
-    MIN_FEATURE_CARDINALITY: list[int] = field(default_factory=lambda: [2])
-    MAX_FEATURE_CARDINALITY: list[int] = field(default_factory=lambda: [5, 8])
-    PROB_FEATURE_CARDINALITY: float = 0.5
+    MIN_FEATURE_CARDINALITY: int = 2
+    MAX_FEATURE_CARDINALITY: int = 5
+    PROB_FEATURE_CARDINALITY: float = 0.1
 
     MAX_TREE_DEPTH: int = 5
     DIST_OPTIONAL: float = 0.3
@@ -97,6 +97,20 @@ class Params:
         if not self.ARITHMETIC_LEVEL:
             self.FEATURE_CARDINALITY = False
             self.AGGREGATE_FUNCTIONS = False
+
+        if self.FEATURE_CARDINALITY:
+            if self.MIN_FEATURE_CARDINALITY < 1:
+                raise ValueError("[ERROR] MIN_FEATURE_CARDINALITY debe ser al menos 1.")
+            if self.MAX_FEATURE_CARDINALITY < 1:
+                raise ValueError("[ERROR] MAX_FEATURE_CARDINALITY debe ser al menos 1.")
+            if self.MIN_FEATURE_CARDINALITY > self.MAX_FEATURE_CARDINALITY:
+                raise ValueError(
+                    "[ERROR] MIN_FEATURE_CARDINALITY no puede ser mayor que MAX_FEATURE_CARDINALITY."
+                )
+            if not (0.0 <= self.PROB_FEATURE_CARDINALITY <= 1.0):
+                raise ValueError(
+                    f"[ERROR] PROB_FEATURE_CARDINALITY debe estar entre 0 y 1 (actual: {self.PROB_FEATURE_CARDINALITY})"
+                )
 
         if not self.TYPE_LEVEL:
             self.STRING_CONSTRAINTS = False
