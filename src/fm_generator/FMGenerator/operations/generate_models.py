@@ -13,6 +13,7 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
     num_attributes = random.randint(params.MIN_ATTRIBUTES, params.MAX_ATTRIBUTES)
 
     arithmetic_level_enabled = bool(getattr(params, "ARITHMETIC_LEVEL", False))
+    random_attach_probability = 0.3
 
     for i in range(num_attributes):
         feature = random.choice(features)
@@ -20,7 +21,6 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
 
         # Si Arithmetic level está activo, garantizamos que exista
         # al menos un atributo numérico por modelo.
-        # Forzamos que el primero sea integer o real.
         if i == 0 and arithmetic_level_enabled:
             attr_type = random.choice(["integer", "real"])
         else:
@@ -44,7 +44,6 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
             min_len = 1
             max_len = 50
             domain = Domain(ranges=[Range(min_len, max_len)], elements=None)
-
             length = random.randint(min_len, max_len)
             letters = string.ascii_letters + string.digits
             default = ''.join(random.choices(letters, k=length))
@@ -250,15 +249,21 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
     attrs_str: list[tuple[Feature, Attribute]] = []
 
     # Attributes usables en constraints
-    # - Manual attributes: only if use_in_constraints=True
+    # - Manual attributes: use_in_constraints decide si pueden entrar,
+    #   y attach_probability también actúa como probabilidad de aparición en cada constraint
     # - Random attributes:
-    #     * boolean -> eligible
-    #     * integer/real -> eligible if ARITHMETIC_LEVEL
-    #     * string -> eligible if TYPE_LEVEL and STRING_CONSTRAINTS
+    #   siempre tienen attach_probability fija = 0.3 también para constraints
+    RANDOM_ATTR_CONSTRAINT_PROB = 0.3
+
+    attrs_bool: list[tuple[Feature, Attribute, float]] = []
+    attrs_num: list[tuple[Feature, Attribute, float]] = []
+    attrs_str: list[tuple[Feature, Attribute, float]] = []
+
     for feat in features:
         for attr in getattr(feat, "attributes", []):
             attr_type = None
             use_in_constraints = False
+            constraint_probability = None
 
             # -------------------------
             # Manual attributes
@@ -268,6 +273,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                     if attr_dict.get("name") == attr.name and feat.name and attr.name:
                         attr_type = (attr_dict.get("type", "") or "").lower()
                         use_in_constraints = attr_dict.get("use_in_constraints", False)
+                        constraint_probability = float(attr_dict.get("attach_probability", 1.0))
                         break
 
             # -------------------------
@@ -298,27 +304,56 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                         attr_type = "string"
 
                 use_in_constraints = True
+                constraint_probability = RANDOM_ATTR_CONSTRAINT_PROB
 
             if not use_in_constraints:
                 continue
 
+            constraint_probability = max(0.0, min(float(constraint_probability), 1.0))
+            attr_tuple = (feat, attr, constraint_probability)
+
             if attr_type == "boolean":
-                attrs_bool.append((feat, attr))
+                attrs_bool.append(attr_tuple)
 
             elif attr_type in ("integer", "real"):
                 if getattr(params, "ARITHMETIC_LEVEL", False):
-                    attrs_num.append((feat, attr))
+                    attrs_num.append(attr_tuple)
 
             elif attr_type == "string":
                 if (
                     getattr(params, "TYPE_LEVEL", False)
                     and getattr(params, "STRING_CONSTRAINTS", False)
                 ):
-                    attrs_str.append((feat, attr))
+                    attrs_str.append(attr_tuple)
 
     # Todas las features pueden aparecer como variables booleanas en constraints,
     # tengan o no atributos.
     feats_bool = list(features)
+
+    def filter_attrs_for_constraint(
+        attr_pool: list[tuple[Feature, Attribute, float]]
+    ) -> list[tuple[Feature, Attribute]]:
+        filtered: list[tuple[Feature, Attribute]] = []
+        for feat, attr, prob in attr_pool:
+            if random.random() < prob:
+                filtered.append((feat, attr))
+        return filtered
+
+    def ensure_non_empty_filtered_pool(
+        filtered_pool: list[tuple[Feature, Attribute]],
+        original_pool: list[tuple[Feature, Attribute, float]]
+    ) -> list[tuple[Feature, Attribute]]:
+        if filtered_pool or not original_pool:
+            return filtered_pool
+
+        # Si no ha entrado ninguno por probabilidad, damos una oportunidad
+        # a que entre uno al menos, escogido ponderadamente por su attach_probability.
+        weights = [max(0.0, prob) for _, _, prob in original_pool]
+        if sum(weights) <= 0.0:
+            return []
+
+        feat, attr, _ = random.choices(original_pool, weights=weights, k=1)[0]
+        return [(feat, attr)]
 
     # -----------------------------
     # Params y caps
@@ -568,9 +603,22 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
     total_ctcs = random.randint(params.MIN_CONSTRAINTS, params.MAX_CONSTRAINTS)
 
     for i in range(total_ctcs):
-        bool_pool = [f.name for f in feats_bool] + [f"{f.name}.{a.name}" for f, a in attrs_bool]
-        num_pool = [f"{f.name}.{a.name}" for f, a in attrs_num]
-        str_pool = [f"{f.name}.{a.name}" for f, a in attrs_str]
+        filtered_bool_attrs = ensure_non_empty_filtered_pool(
+            filter_attrs_for_constraint(attrs_bool),
+            attrs_bool
+        )
+        filtered_num_attrs = ensure_non_empty_filtered_pool(
+            filter_attrs_for_constraint(attrs_num),
+            attrs_num
+        )
+        filtered_str_attrs = ensure_non_empty_filtered_pool(
+            filter_attrs_for_constraint(attrs_str),
+            attrs_str
+        )
+
+        bool_pool = [f.name for f in feats_bool] + [f"{f.name}.{a.name}" for f, a in filtered_bool_attrs]
+        num_pool = [f"{f.name}.{a.name}" for f, a in filtered_num_attrs]
+        str_pool = [f"{f.name}.{a.name}" for f, a in filtered_str_attrs]
 
         bool_groups = group_keys_by_feature(list(set(bool_pool)))
         num_groups = group_keys_by_feature(list(set(num_pool)))
