@@ -11,26 +11,38 @@ from fm_generator.FMGenerator.models.config import Params
 
 def generate_random_attributes(params: Params, features: list[Feature]) -> None:
     num_attributes = random.randint(params.MIN_ATTRIBUTES, params.MAX_ATTRIBUTES)
+
+    arithmetic_level_enabled = bool(getattr(params, "ARITHMETIC_LEVEL", False))
+
     for i in range(num_attributes):
         feature = random.choice(features)
         attr_name = f"Attr{i}"
-        attr_type = random.choice(['boolean', 'integer', 'real', 'string'])
+
+        # Si Arithmetic level está activo, garantizamos que exista
+        # al menos un atributo numérico por modelo.
+        # Forzamos que el primero sea integer o real.
+        if i == 0 and arithmetic_level_enabled:
+            attr_type = random.choice(["integer", "real"])
+        else:
+            attr_type = random.choice(["boolean", "integer", "real", "string"])
 
         if attr_type == 'boolean':
             domain = Domain(ranges=None, elements=[True, False])
             default = random.choice([True, False])
+
         elif attr_type == 'integer':
             min_val, max_val = random.randint(0, 50), random.randint(51, 100)
             domain = Domain(ranges=[Range(min_val, max_val)], elements=None)
             default = random.randint(min_val, max_val)
+
         elif attr_type == 'real':
             min_val, max_val = random.randint(0, 50), random.randint(51, 100)
             domain = Domain(ranges=[Range(min_val, max_val)], elements=None)
             default = round(random.uniform(min_val, max_val), 2)
+
         else:
             min_len = 1
             max_len = 50
-
             domain = Domain(ranges=[Range(min_len, max_len)], elements=None)
 
             length = random.randint(min_len, max_len)
@@ -40,7 +52,6 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
         attribute = Attribute(name=attr_name, domain=domain, default_value=default)
         attribute.set_parent(feature)
         feature.add_attribute(attribute)
-
 
 
 def assign_manual_attributes(params: Params, features: list[Feature]) -> None:
