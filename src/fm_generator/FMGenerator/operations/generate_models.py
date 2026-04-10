@@ -13,18 +13,33 @@ def generate_random_attributes(params: Params, features: list[Feature]) -> None:
     num_attributes = random.randint(params.MIN_ATTRIBUTES, params.MAX_ATTRIBUTES)
 
     arithmetic_level_enabled = bool(getattr(params, "ARITHMETIC_LEVEL", False))
-    random_attach_probability = 0.3
+    min_vars_per_constraint = int(getattr(params, "MIN_VARS_PER_CONSTRAINT", 1))
+    extra_constraint_repr = max(1, int(getattr(params, "EXTRA_CONSTRAINT_REPRESENTATIVENESS", 1)))
+
+    # Si hay nivel aritmético, necesitamos suficientes attrs numéricos
+    # repartidos en features distintas para que las constraints numéricas
+    # sean realmente viables.
+    required_numeric_attrs = 0
+    if arithmetic_level_enabled:
+        required_numeric_attrs = (min_vars_per_constraint + extra_constraint_repr - 1) // extra_constraint_repr
+        required_numeric_attrs = min(required_numeric_attrs, num_attributes, len(features))
+
+    available_features_for_numeric = features[:]
+    random.shuffle(available_features_for_numeric)
 
     for i in range(num_attributes):
-        feature = random.choice(features)
-        attr_name = f"Attr{i}"
-
-        # Si Arithmetic level está activo, garantizamos que exista
-        # al menos un atributo numérico por modelo.
-        if i == 0 and arithmetic_level_enabled:
+        # Garantizamos attrs numéricos suficientes al principio
+        if i < required_numeric_attrs:
             attr_type = random.choice(["integer", "real"])
+            if available_features_for_numeric:
+                feature = available_features_for_numeric.pop()
+            else:
+                feature = random.choice(features)
         else:
-            attr_type = random.choice(["boolean", "integer", "real", "string"])
+            feature = random.choice(features)
+            attr_type = random.choice(['boolean', 'integer', 'real', 'string'])
+
+        attr_name = f"Attr{i}"
 
         if attr_type == 'boolean':
             domain = Domain(ranges=None, elements=[True, False])
@@ -253,7 +268,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
     #   y attach_probability también actúa como probabilidad de aparición en cada constraint
     # - Random attributes:
     #   siempre tienen attach_probability fija = 0.3 también para constraints
-    RANDOM_ATTR_CONSTRAINT_PROB = 0.3
+    RANDOM_ATTR_CONSTRAINT_PROB = 0.8
 
     attrs_bool: list[tuple[Feature, Attribute, float]] = []
     attrs_num: list[tuple[Feature, Attribute, float]] = []
@@ -642,7 +657,21 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             # No hay manera de cumplir min_vars para ningún tipo => no generes una pequeña
             continue
 
-        constraint_type = random.choice(candidates)
+        candidate_weights = []
+        for c in candidates:
+            if c == "bool":
+                candidate_weights.append(float(getattr(params, "CTC_DIST_BOOLEAN", 0.7)))
+            elif c == "num":
+                candidate_weights.append(float(getattr(params, "CTC_DIST_NUMERIC", 0.2)))
+            elif c == "string":
+                candidate_weights.append(float(getattr(params, "CTC_DIST_STRING", 0.0)))
+            else:
+                candidate_weights.append(0.0)
+
+        if sum(candidate_weights) <= 0.0:
+            constraint_type = random.choice(candidates)
+        else:
+            constraint_type = random.choices(candidates, weights=candidate_weights, k=1)[0]
 
         # -----------------------------
         # BOOLEAN: N literales (N = target_occ)
