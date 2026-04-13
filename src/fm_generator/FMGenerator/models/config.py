@@ -133,10 +133,10 @@ class Params:
                 self.DIST_STRING
             )
 
-            if type_total > 1.0 + 1e-6:
+            if abs(type_total - 1.0) > 1e-6:
                 raise ValueError(
                     f"[ERROR] La suma de DIST_BOOLEAN, DIST_INTEGER, DIST_REAL y DIST_STRING "
-                    f"debe ser menor o igual que 1.0 (actual: {type_total})"
+                    f"debe ser exactamente 1.0 (actual: {type_total})"
                 )
 
         if not self.TYPE_LEVEL:
