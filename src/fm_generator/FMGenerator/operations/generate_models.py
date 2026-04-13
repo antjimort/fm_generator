@@ -3,7 +3,7 @@ import string
 from enum import Enum
 from dataclasses import dataclass, field
 from flamapy.metamodels.fm_metamodel.models.feature_model import (
-    FeatureModel, Feature, Relation, Constraint, Attribute, Domain, Range, Cardinality
+    FeatureModel, Feature, Relation, Constraint, Attribute, Domain, Range, Cardinality, FeatureType
 )
 from flamapy.core.models.ast import AST, ASTOperation, Node
 from fm_generator.FMGenerator.models.config import Params
@@ -153,6 +153,55 @@ def assign_manual_attributes(params: Params, features: list[Feature]) -> None:
                 feature.add_attribute(attribute)
 
 
+def maybe_apply_feature_type(feature: Feature, params: Params) -> None:
+    """Assign a type-level type to the feature according to independent probabilities.
+
+    If no type is selected, the feature remains semantically Boolean without explicit type.
+    If several probabilities succeed at once, one of the matched types is chosen randomly.
+    """
+    if not getattr(params, "TYPE_LEVEL", False):
+        feature.feature_type = FeatureType.BOOLEAN
+        setattr(feature, "is_type_level_typed", False)
+        return
+
+    candidates: list[FeatureType] = []
+
+    if random.random() < float(getattr(params, "DIST_BOOLEAN", 0.0)):
+        candidates.append(FeatureType.BOOLEAN)
+    if random.random() < float(getattr(params, "DIST_INTEGER", 0.0)):
+        candidates.append(FeatureType.INTEGER)
+    if random.random() < float(getattr(params, "DIST_REAL", 0.0)):
+        candidates.append(FeatureType.REAL)
+    if random.random() < float(getattr(params, "DIST_STRING", 0.0)):
+        candidates.append(FeatureType.STRING)
+
+    if candidates:
+        feature.feature_type = random.choice(candidates)
+        setattr(feature, "is_type_level_typed", True)
+    else:
+        # Untyped feature: semantically equivalent to Boolean
+        feature.feature_type = FeatureType.BOOLEAN
+        setattr(feature, "is_type_level_typed", False)
+
+
+def feature_constraint_bucket(feature: Feature, params: Params) -> str:
+    """Return the constraint bucket where the feature must participate.
+
+    Rules agreed with you:
+    - untyped feature or Boolean feature -> bool
+    - Integer / Real feature -> num
+    - String feature -> string
+    """
+    if not getattr(params, "TYPE_LEVEL", False):
+        return "bool"
+
+    ftype = getattr(feature, "feature_type", FeatureType.BOOLEAN)
+
+    if ftype in (FeatureType.INTEGER, FeatureType.REAL):
+        return "num"
+    if ftype == FeatureType.STRING:
+        return "string"
+    return "bool"
 
 
 def select_relation_types(params: Params, total: int) -> list[str]:
@@ -273,6 +322,8 @@ def generate_hierarchy(params: Params) -> tuple[FeatureModel, list[Feature]]:
     numFeats = random.randint(params.MIN_FEATURES, params.MAX_FEATURES)
     names = [f"F{i+1}" for i in range(numFeats)]
     features = [Feature(name=n) for n in names]
+    for feature in features:
+        maybe_apply_feature_type(feature, params)
     levels = {0: [root]}
     idx = 0
     total = 0
@@ -386,9 +437,9 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                 ):
                     attrs_str.append(attr_tuple)
 
-    # Todas las features pueden aparecer como variables booleanas en constraints,
-    # tengan o no atributos.
-    feats_bool = list(features)
+    feats_bool = [f for f in features if feature_constraint_bucket(f, params) == "bool"]
+    feats_num = [f for f in features if feature_constraint_bucket(f, params) == "num"]
+    feats_str = [f for f in features if feature_constraint_bucket(f, params) == "string"]
 
     def filter_attrs_for_constraint(
         attr_pool: list[tuple[Feature, Attribute, float]]
@@ -677,8 +728,8 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         )
 
         bool_pool = [f.name for f in feats_bool] + [f"{f.name}.{a.name}" for f, a in filtered_bool_attrs]
-        num_pool = [f"{f.name}.{a.name}" for f, a in filtered_num_attrs]
-        str_pool = [f"{f.name}.{a.name}" for f, a in filtered_str_attrs]
+        num_pool = [f.name for f in feats_num] + [f"{f.name}.{a.name}" for f, a in filtered_num_attrs]
+        str_pool = [f.name for f in feats_str] + [f"{f.name}.{a.name}" for f, a in filtered_str_attrs]
 
         bool_groups = group_keys_by_feature(list(set(bool_pool)))
         num_groups = group_keys_by_feature(list(set(num_pool)))

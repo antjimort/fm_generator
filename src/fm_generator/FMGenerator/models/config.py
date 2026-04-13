@@ -112,6 +112,33 @@ class Params:
                     f"[ERROR] PROB_FEATURE_CARDINALITY debe estar entre 0 y 1 (actual: {self.PROB_FEATURE_CARDINALITY})"
                 )
 
+        if self.TYPE_LEVEL:
+            type_dists = [
+                ("DIST_BOOLEAN", self.DIST_BOOLEAN),
+                ("DIST_INTEGER", self.DIST_INTEGER),
+                ("DIST_REAL", self.DIST_REAL),
+                ("DIST_STRING", self.DIST_STRING),
+            ]
+
+            for name, value in type_dists:
+                if not (0.0 <= value <= 1.0):
+                    raise ValueError(
+                        f"[ERROR] {name} debe estar entre 0 y 1 (actual: {value})"
+                    )
+
+            type_total = (
+                self.DIST_BOOLEAN +
+                self.DIST_INTEGER +
+                self.DIST_REAL +
+                self.DIST_STRING
+            )
+
+            if type_total > 1.0 + 1e-6:
+                raise ValueError(
+                    f"[ERROR] La suma de DIST_BOOLEAN, DIST_INTEGER, DIST_REAL y DIST_STRING "
+                    f"debe ser menor o igual que 1.0 (actual: {type_total})"
+                )
+
         if not self.TYPE_LEVEL:
             self.STRING_CONSTRAINTS = False
 
