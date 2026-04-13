@@ -352,13 +352,6 @@ def generate_hierarchy(params: Params) -> tuple[FeatureModel, list[Feature]]:
 
 
 def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -> None:
-    # -----------------------------
-    # Pools de variables disponibles
-    # -----------------------------
-    attrs_bool: list[tuple[Feature, Attribute]] = []
-    attrs_num: list[tuple[Feature, Attribute]] = []
-    attrs_str: list[tuple[Feature, Attribute]] = []
-
     # Attributes usables en constraints
     # - Manual attributes: use_in_constraints decide si pueden entrar,
     #   y attach_probability también actúa como probabilidad de aparición en cada constraint
@@ -654,17 +647,36 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         args = ", ".join(keys)
         return Node(f"{func_name}({args})")
 
-    def build_plain_arith_expr(keys: list[str]) -> Node:
-        cur = Node(keys[0])
+    def maybe_wrap_key_with_len(key: str, len_eligible_keys: set[str]) -> str:
+        if key in len_eligible_keys and random.random() < len_prob:
+            return f"len({key})"
+        return key
+
+    def build_function_style_node(expr: str) -> Node:
+        return Node(expr)
+
+    def build_plain_arith_expr(keys: list[str], len_eligible_keys: set[str] | None = None) -> Node:
+        len_eligible_keys = len_eligible_keys or set()
+
+        first_key = maybe_wrap_key_with_len(keys[0], len_eligible_keys)
+        cur = build_function_style_node(first_key)
+
         for k in keys[1:]:
-            cur = Node(pick_binary_arith_op(), cur, Node(k))
+            wrapped_key = maybe_wrap_key_with_len(k, len_eligible_keys)
+            cur = Node(pick_binary_arith_op(), cur, build_function_style_node(wrapped_key))
+
         return cur
 
-    def maybe_wrap_with_aggregate(expr: Node, keys: list[str]) -> Node:
+    def maybe_wrap_with_aggregate(
+        expr: Node,
+        keys: list[str],
+        len_eligible_keys: set[str] | None = None,
+    ) -> Node:
+        len_eligible_keys = len_eligible_keys or set()
+
         if not getattr(params, "AGGREGATE_FUNCTIONS", False):
             return expr
 
-        # Solo tiene sentido aplicar aggregates si hay al menos 2 refs
         if len(keys) < 2:
             return expr
 
@@ -672,12 +684,9 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         prob_avg_function = float(getattr(params, "PROB_AVG_FUNCTION", 0.0))
         aggregate_total = prob_sum_function + prob_avg_function
 
-        # Si no hay probabilidad agregada, no se envuelve
         if aggregate_total <= 0.0:
             return expr
 
-        # La suma de sum() y avg() se interpreta como probabilidad total
-        # de que ESTA constraint aritmética lleve aggregate.
         use_aggregate = random.random() < min(aggregate_total, 1.0)
         if not use_aggregate:
             return expr
@@ -686,11 +695,15 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         if agg_name is None:
             return expr
 
-        return build_function_node(agg_name, keys)
+        wrapped_keys = [
+            maybe_wrap_key_with_len(k, len_eligible_keys)
+            for k in keys
+        ]
+        return build_function_node(agg_name, wrapped_keys)
 
-    def build_arith_expr(keys: list[str]) -> Node:
-        expr = build_plain_arith_expr(keys)
-        expr = maybe_wrap_with_aggregate(expr, keys)
+    def build_arith_expr(keys: list[str], len_eligible_keys: set[str] | None = None) -> Node:
+        expr = build_plain_arith_expr(keys, len_eligible_keys)
+        expr = maybe_wrap_with_aggregate(expr, keys, len_eligible_keys)
         return expr
     
     def build_boolean_predicate(keys: list[str]) -> Node | None:
@@ -705,9 +718,14 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         return build_left_deep_bool_ast(literals)
 
 
-    def build_numeric_predicate(keys: list[str]) -> Node | None:
+    def build_numeric_predicate(
+        keys: list[str],
+        len_eligible_keys: set[str] | None = None,
+    ) -> Node | None:
         if len(keys) < 2:
             return None
+
+        len_eligible_keys = len_eligible_keys or set()
 
         split = random.randint(1, len(keys) - 1)
         left_keys = keys[:split]
@@ -716,8 +734,8 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         if not left_keys or not right_keys:
             return None
 
-        expr_left = build_arith_expr(left_keys)
-        expr_right = build_arith_expr(right_keys)
+        expr_left = build_arith_expr(left_keys, len_eligible_keys)
+        expr_right = build_arith_expr(right_keys, len_eligible_keys)
         return Node(pick_cmp_op(), expr_left, expr_right)
 
 
@@ -764,6 +782,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         bool_groups: dict[str, list[str]],
         num_groups: dict[str, list[str]],
         str_groups: dict[str, list[str]],
+        len_groups: dict[str, list[str]],
         target_occ: int,
     ) -> Node | None:
         """
@@ -786,7 +805,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
 
                 if bool_groups and remaining >= 1:
                     available_kinds.append("bool")
-                if num_groups and remaining >= 2:
+                if (num_groups or len_groups) and remaining >= 2:
                     available_kinds.append("num")
                 if str_groups and remaining >= 2:
                     available_kinds.append("string")
@@ -809,15 +828,30 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                     node = build_boolean_predicate(chosen)
 
                 elif kind == "num":
-                    # Un predicado numérico necesita al menos 2 vars
-                    max_occ = min(4, remaining)  # 2, 3 o 4; permite impares
+                    max_occ = min(4, remaining)
                     if max_occ < 2:
                         break
                     occ = random.randint(2, max_occ)
-                    chosen = sample_keys_with_ecr(num_groups, occ, feature_usage, selected_features)
+
+                    merged_num_groups: dict[str, list[str]] = {}
+                    for source in (num_groups, len_groups):
+                        for fid, values in source.items():
+                            merged_num_groups.setdefault(fid, []).extend(values)
+
+                    chosen = sample_keys_with_ecr(
+                        merged_num_groups,
+                        occ,
+                        feature_usage,
+                        selected_features
+                    )
                     if not chosen:
                         break
-                    node = build_numeric_predicate(chosen)
+
+                    len_eligible_keys = set()
+                    for values in len_groups.values():
+                        len_eligible_keys.update(values)
+
+                    node = build_numeric_predicate(chosen, len_eligible_keys)
 
                 else:  # string
                     # Igualdades de string: mínimo 2
@@ -870,6 +904,16 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         num_groups = group_keys_by_feature(list(set(num_pool)))
         str_groups = group_keys_by_feature(list(set(str_pool)))
 
+        len_prob = float(getattr(params, "PROB_LEN_FUNCTION", 0.0))
+
+        # Candidatos string que pueden transformarse a len(...)
+        len_pool = []
+        if getattr(params, "TYPE_LEVEL", False) and getattr(params, "STRING_CONSTRAINTS", False):
+            len_pool.extend([f.name for f in feats_str])
+            len_pool.extend([f"{f.name}.{a.name}" for f, a in filtered_str_attrs])
+
+        len_groups = group_keys_by_feature(list(set(len_pool)))
+
         # capacidad aproximada total: suma de capacidades por bucket
         total_capacity = 0
         if bool_groups:
@@ -878,6 +922,8 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             total_capacity += max_occurrences_possible(num_groups)
         if str_groups:
             total_capacity += max_occurrences_possible(str_groups)
+        if len_groups:
+            total_capacity += max_occurrences_possible(len_groups)
 
         effective_max = min(max_vars, total_capacity)
         effective_min = min_vars
@@ -887,7 +933,13 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
 
         target_occ = random.randint(effective_min, effective_max)
 
-        root = build_mixed_constraint(bool_groups, num_groups, str_groups, target_occ)
+        root = build_mixed_constraint(
+            bool_groups,
+            num_groups,
+            str_groups,
+            len_groups,
+            target_occ
+        )
         if root is None:
             continue
 
