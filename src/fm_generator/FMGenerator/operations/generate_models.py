@@ -469,23 +469,12 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
     # -----------------------------
     # Params y caps
     # -----------------------------
-    def to_even_up(n: int) -> int:
-        return n if n % 2 == 0 else n + 1
-
-    def to_even_down(n: int) -> int:
-        return n if n % 2 == 0 else n - 1
-
     min_vars = int(getattr(params, "MIN_VARS_PER_CONSTRAINT", 1))
     max_vars = int(getattr(params, "MAX_VARS_PER_CONSTRAINT", 2))
 
-    min_vars = max(2, min_vars)
-    max_vars = max(2, max_vars)
+    min_vars = max(1, min_vars)
+    max_vars = max(1, max_vars)
 
-    # Forzamos paridad: siempre siguiente par
-    min_vars = to_even_up(min_vars)
-    max_vars = to_even_up(max_vars)
-
-    # Sin hard cap artificial
     if min_vars > max_vars:
         min_vars = max_vars
 
@@ -555,62 +544,47 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             return None
 
         max_by_ecr = max_occurrences_possible(groups)
-
         effective_max = min(max_vars, max_by_ecr)
-        effective_max = to_even_down(effective_max)
-
-        effective_min = to_even_up(min_vars)
+        effective_min = min_vars
 
         if effective_max < effective_min:
             return None
 
-        # número de valores pares disponibles en el rango
-        num_even_values = ((effective_max - effective_min) // 2) + 1
-        offset = random.randint(0, num_even_values - 1)
-        return effective_min + (2 * offset)
+        return random.randint(effective_min, effective_max)
 
-    def sample_keys_with_ecr(groups: dict[str, list[str]], target_occ: int) -> list[str] | None:
+    def sample_keys_with_ecr(
+        groups: dict[str, list[str]],
+        target_occ: int,
+        feature_usage: dict[str, int] | None = None,
+        selected_features: set[str] | None = None,
+    ) -> list[str] | None:
         """
         Devuelve una lista de keys de longitud target_occ.
         Permite repetir keys, pero restringe por feature_id a max_reps apariciones.
-        Además limita el número de features distintas usadas por MAX_FEATURES (step2).
+        Además limita el número de features distintas usadas por MAX_FEATURES.
         """
-        if target_occ < 2 or target_occ % 2 == 1:
+        if target_occ < 1:
             return None
 
-        df_cap = distinct_feature_cap(groups)
-        if df_cap <= 0:
-            return None
+        feature_usage = {} if feature_usage is None else feature_usage
+        selected_features = set() if selected_features is None else selected_features
 
-        # nº mínimo de features distintas necesarias para alcanzar target_occ con ECR
-        min_distinct_needed = (target_occ + max_reps - 1) // max_reps
-        if min_distinct_needed > df_cap:
-            return None
-
-        all_fids = list(groups.keys())
-
-        # elegimos EXACTAMENTE las necesarias (para maximizar ocurrencias con ECR)
-        distinct_count = min(df_cap, max(1, min_distinct_needed))
-        chosen_fids = random.sample(all_fids, distinct_count)
-
-        counts = {fid: 0 for fid in chosen_fids}
         out: list[str] = []
 
-        # round-robin hasta llenar target_occ
-        while len(out) < target_occ:
-            progressed = False
-            for fid in chosen_fids:
-                if len(out) >= target_occ:
-                    break
-                if counts[fid] < max_reps:
-                    out.append(random.choice(groups[fid]))
-                    counts[fid] += 1
-                    progressed = True
-            if not progressed:
-                break
+        for _ in range(target_occ):
+            allowed_fids = [
+                fid for fid in groups
+                if feature_usage.get(fid, 0) < max_reps
+                and (fid in selected_features or len(selected_features) < max_features_param)
+            ]
 
-        if len(out) != target_occ:
-            return None
+            if not allowed_fids:
+                return None
+
+            fid = random.choice(allowed_fids)
+            out.append(random.choice(groups[fid]))
+            feature_usage[fid] = feature_usage.get(fid, 0) + 1
+            selected_features.add(fid)
 
         random.shuffle(out)
         return out
@@ -708,6 +682,157 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         expr = build_plain_arith_expr(keys)
         expr = maybe_wrap_with_aggregate(expr, keys)
         return expr
+    
+    def build_boolean_predicate(keys: list[str]) -> Node | None:
+        if not keys:
+            return None
+
+        literals = [maybe_not(Node(k)) for k in keys]
+
+        if len(literals) == 1:
+            return literals[0]
+
+        return build_left_deep_bool_ast(literals)
+
+
+    def build_numeric_predicate(keys: list[str]) -> Node | None:
+        if len(keys) < 2:
+            return None
+
+        split = random.randint(1, len(keys) - 1)
+        left_keys = keys[:split]
+        right_keys = keys[split:]
+
+        if not left_keys or not right_keys:
+            return None
+
+        expr_left = build_arith_expr(left_keys)
+        expr_right = build_arith_expr(right_keys)
+        return Node(pick_cmp_op(), expr_left, expr_right)
+
+
+    def build_string_predicate(keys: list[str]) -> Node | None:
+        if len(keys) < 2:
+            return None
+
+        if len(keys) == 2:
+            return Node(ASTOperation.EQUALS, Node(keys[0]), Node(keys[1]))
+
+        eq_nodes: list[Node] = []
+        i = 0
+        while i + 1 < len(keys):
+            eq_nodes.append(Node(ASTOperation.EQUALS, Node(keys[i]), Node(keys[i + 1])))
+            i += 2
+
+        if not eq_nodes:
+            return None
+        if len(eq_nodes) == 1:
+            return eq_nodes[0]
+
+        return build_left_deep_bool_ast(eq_nodes)
+
+
+    def pick_predicate_kind(available_kinds: list[str]) -> str:
+        weights = []
+        for kind in available_kinds:
+            if kind == "bool":
+                weights.append(float(getattr(params, "CTC_DIST_BOOLEAN", 0.7)))
+            elif kind == "num":
+                weights.append(float(getattr(params, "CTC_DIST_NUMERIC", 0.2)))
+            elif kind == "string":
+                weights.append(float(getattr(params, "CTC_DIST_STRING", 0.0)))
+            else:
+                weights.append(0.0)
+
+        if sum(weights) <= 0.0:
+            return random.choice(available_kinds)
+
+        return random.choices(available_kinds, weights=weights, k=1)[0]
+
+
+    def build_mixed_constraint(
+        bool_groups: dict[str, list[str]],
+        num_groups: dict[str, list[str]],
+        str_groups: dict[str, list[str]],
+        target_occ: int,
+    ) -> Node | None:
+        """
+        Construye una constraint mezclando predicados booleanos, numéricos y string
+        dentro de una misma fórmula lógica.
+        Ejemplo válido: F1 & F2 | (F3.Attr1 < F4)
+        """
+        if target_occ < 1:
+            return None
+
+        # varios intentos para evitar callejones sin salida
+        for _ in range(50):
+            remaining = target_occ
+            feature_usage: dict[str, int] = {}
+            selected_features: set[str] = set()
+            predicate_nodes: list[Node] = []
+
+            while remaining > 0:
+                available_kinds: list[str] = []
+
+                if bool_groups and remaining >= 1:
+                    available_kinds.append("bool")
+                if num_groups and remaining >= 2:
+                    available_kinds.append("num")
+                if str_groups and remaining >= 2:
+                    available_kinds.append("string")
+
+                if not available_kinds:
+                    break
+
+                # Si solo queda 1 variable, obligatoriamente booleano
+                if remaining == 1 and "bool" in available_kinds:
+                    kind = "bool"
+                else:
+                    kind = pick_predicate_kind(available_kinds)
+
+                if kind == "bool":
+                    # Para no generar monstruos, un predicado booleano consume entre 1 y 3 vars
+                    occ = random.randint(1, min(3, remaining))
+                    chosen = sample_keys_with_ecr(bool_groups, occ, feature_usage, selected_features)
+                    if not chosen:
+                        break
+                    node = build_boolean_predicate(chosen)
+
+                elif kind == "num":
+                    # Un predicado numérico necesita al menos 2 vars
+                    max_occ = min(4, remaining)  # 2, 3 o 4; permite impares
+                    if max_occ < 2:
+                        break
+                    occ = random.randint(2, max_occ)
+                    chosen = sample_keys_with_ecr(num_groups, occ, feature_usage, selected_features)
+                    if not chosen:
+                        break
+                    node = build_numeric_predicate(chosen)
+
+                else:  # string
+                    # Igualdades de string: mínimo 2
+                    max_occ = min(4, remaining)
+                    if max_occ < 2:
+                        break
+                    occ = random.randint(2, max_occ)
+                    chosen = sample_keys_with_ecr(str_groups, occ, feature_usage, selected_features)
+                    if not chosen:
+                        break
+                    node = build_string_predicate(chosen)
+
+                if node is None:
+                    break
+
+                predicate_nodes.append(node)
+                remaining -= occ
+
+            if remaining == 0 and predicate_nodes:
+                if len(predicate_nodes) == 1:
+                    return predicate_nodes[0]
+                return build_left_deep_bool_ast(predicate_nodes)
+
+        return None
+
     # -----------------------------
     # Generación de constraints
     # -----------------------------
@@ -735,104 +860,28 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         num_groups = group_keys_by_feature(list(set(num_pool)))
         str_groups = group_keys_by_feature(list(set(str_pool)))
 
-        candidates: list[str] = []
-        t_bool = choose_target_occurrences(bool_groups)
-        if t_bool is not None:
-            candidates.append("bool")
+        # capacidad aproximada total: suma de capacidades por bucket
+        total_capacity = 0
+        if bool_groups:
+            total_capacity += max_occurrences_possible(bool_groups)
+        if num_groups:
+            total_capacity += max_occurrences_possible(num_groups)
+        if str_groups:
+            total_capacity += max_occurrences_possible(str_groups)
 
-        t_num = choose_target_occurrences(num_groups)
-        if t_num is not None:
-            candidates.append("num")
+        effective_max = min(max_vars, total_capacity)
+        effective_min = min_vars
 
-        # string: también usamos choose_target_occurrences, pero requiere par (ya lo es)
-        t_str = choose_target_occurrences(str_groups)
-        if t_str is not None:
-            candidates.append("string")
-
-        if not candidates:
-            # No hay manera de cumplir min_vars para ningún tipo => no generes una pequeña
+        if effective_max < effective_min:
             continue
 
-        candidate_weights = []
-        for c in candidates:
-            if c == "bool":
-                candidate_weights.append(float(getattr(params, "CTC_DIST_BOOLEAN", 0.7)))
-            elif c == "num":
-                candidate_weights.append(float(getattr(params, "CTC_DIST_NUMERIC", 0.2)))
-            elif c == "string":
-                candidate_weights.append(float(getattr(params, "CTC_DIST_STRING", 0.0)))
-            else:
-                candidate_weights.append(0.0)
+        target_occ = random.randint(effective_min, effective_max)
 
-        if sum(candidate_weights) <= 0.0:
-            constraint_type = random.choice(candidates)
-        else:
-            constraint_type = random.choices(candidates, weights=candidate_weights, k=1)[0]
+        root = build_mixed_constraint(bool_groups, num_groups, str_groups, target_occ)
+        if root is None:
+            continue
 
-        # -----------------------------
-        # BOOLEAN: N literales (N = target_occ)
-        # -----------------------------
-        if constraint_type == "bool":
-            target_occ = choose_target_occurrences(bool_groups)
-            if target_occ is None:
-                continue
-
-            chosen_keys = sample_keys_with_ecr(bool_groups, target_occ)
-            if not chosen_keys:
-                continue
-
-            literals = [maybe_not(Node(k)) for k in chosen_keys]
-            root = build_left_deep_bool_ast(literals)
-            fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
-
-        # -----------------------------
-        # NUMERIC: N refs totales (leafs) repartidas en left/right
-        # Forma: (expr_left) <cmp> (expr_right)
-        # -----------------------------
-        elif constraint_type == "num":
-            target_occ = choose_target_occurrences(num_groups)
-            if target_occ is None:
-                continue
-
-            chosen_keys = sample_keys_with_ecr(num_groups, target_occ)
-            if not chosen_keys:
-                continue
-
-            # split equilibrado, al menos 1 y 1
-            split = len(chosen_keys) // 2
-            left_keys = chosen_keys[:split]
-            right_keys = chosen_keys[split:]
-            if not left_keys or not right_keys:
-                continue
-
-            expr_left = build_arith_expr(left_keys)
-            expr_right = build_arith_expr(right_keys)
-            root = Node(pick_cmp_op(), expr_left, expr_right)
-            fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
-
-        # -----------------------------
-        # STRING: igualdades (k0==k1), (k2==k3)... combinadas
-        # target_occ refs totales (PAR)
-        # -----------------------------
-        elif constraint_type == "string":
-            target_occ = choose_target_occurrences(str_groups)
-            if target_occ is None:
-                continue
-
-            chosen_keys = sample_keys_with_ecr(str_groups, target_occ)
-            if not chosen_keys:
-                continue
-
-            eq_nodes: list[Node] = []
-            for j in range(0, len(chosen_keys) - 1, 2):
-                eq_nodes.append(Node(ASTOperation.EQUALS, Node(chosen_keys[j]), Node(chosen_keys[j + 1])))
-
-            if len(eq_nodes) == 1:
-                root = eq_nodes[0]
-            else:
-                root = build_left_deep_bool_ast(eq_nodes)
-
-            fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
+        fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
 
 
 
