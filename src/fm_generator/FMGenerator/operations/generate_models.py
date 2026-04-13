@@ -390,6 +390,8 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             # -------------------------
             # Random attributes
             # -------------------------
+            is_manual_attribute = False
+
             if attr_type is None:
                 raw_attr_type = getattr(attr, "attribute_type", None)
 
@@ -416,6 +418,8 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
 
                 use_in_constraints = True
                 constraint_probability = RANDOM_ATTR_CONSTRAINT_PROB
+            else:
+                is_manual_attribute = True
 
             if not use_in_constraints:
                 continue
@@ -431,11 +435,17 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                     attrs_num.append(attr_tuple)
 
             elif attr_type == "string":
-                if (
-                    getattr(params, "TYPE_LEVEL", False)
-                    and getattr(params, "STRING_CONSTRAINTS", False)
-                ):
+                if is_manual_attribute:
+                    # Los atributos manuales string pueden usarse en constraints
+                    # aunque STRING_CONSTRAINTS no esté activado.
                     attrs_str.append(attr_tuple)
+                else:
+                    # Los string aleatorios siguen dependiendo del minor level.
+                    if (
+                        getattr(params, "TYPE_LEVEL", False)
+                        and getattr(params, "STRING_CONSTRAINTS", False)
+                    ):
+                        attrs_str.append(attr_tuple)
 
     feats_bool = [f for f in features if feature_constraint_bucket(f, params) == "bool"]
     feats_num = [f for f in features if feature_constraint_bucket(f, params) == "num"]
