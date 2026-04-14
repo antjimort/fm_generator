@@ -7,6 +7,7 @@ from flamapy.metamodels.fm_metamodel.models.feature_model import (
 )
 from flamapy.core.models.ast import AST, ASTOperation, Node
 from fm_generator.FMGenerator.models.config import Params
+from flamapy.core.discover import DiscoverMetamodels
 
 
 def generate_random_attributes(params: Params, features: list[Feature]) -> None:
@@ -969,8 +970,24 @@ def build_uvl_includes(params: Params) -> list[str]:
     return includes
 
 
-def generate_single_model(params: Params, index: int) -> FeatureModel:
-    random.seed(params.SEED + index)
+SATISFIABILITY_MAX_ATTEMPTS = 30
+SAT_SEED_STRIDE = 100000
+
+
+def is_model_satisfiable(feature_model: FeatureModel) -> bool:
+    """Check satisfiability of an in-memory FM using Flamapy + PySAT."""
+    dm = DiscoverMetamodels()
+    sat_model = dm.use_transformation_m2m(feature_model, "pysat")
+    operation = dm.get_operation(sat_model, "PySATSatisfiable")
+    operation.execute(sat_model)
+    result = operation.get_result()
+    return bool(result)
+
+
+def generate_single_model(params: Params, index: int, attempt: int = 0) -> FeatureModel:
+    seed_value = params.SEED + index + (attempt * SAT_SEED_STRIDE)
+    random.seed(seed_value)
+
     fm, feats = generate_hierarchy(params)
     if params.RANDOM_ATTRIBUTES:
         generate_random_attributes(params, feats)
