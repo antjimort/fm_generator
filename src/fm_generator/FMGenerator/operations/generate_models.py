@@ -946,6 +946,27 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         fm.ctcs.append(Constraint(name=f"ctc{i}", ast=AST(root)))
 
 
+def build_uvl_includes(params: Params) -> list[str]:
+    includes: list[str] = []
+
+    if getattr(params, "GROUP_CARDINALITY", False):
+        includes.append("Boolean.group-cardinality")
+
+    arithmetic_feature_cardinality = bool(getattr(params, "FEATURE_CARDINALITY", False))
+    arithmetic_aggregate_functions = bool(getattr(params, "AGGREGATE_FUNCTIONS", False))
+
+    if arithmetic_feature_cardinality and arithmetic_aggregate_functions:
+        includes.append("Arithmetic.*")
+    else:
+        if arithmetic_aggregate_functions:
+            includes.append("Arithmetic.aggregate-function")
+        if arithmetic_feature_cardinality:
+            includes.append("Arithmetic.feature-cardinality")
+
+    if getattr(params, "TYPE_LEVEL", False) and getattr(params, "STRING_CONSTRAINTS", False):
+        includes.append("Type.string-constraints")
+
+    return includes
 
 
 def generate_single_model(params: Params, index: int) -> FeatureModel:
@@ -956,4 +977,7 @@ def generate_single_model(params: Params, index: int) -> FeatureModel:
     else:
         assign_manual_attributes(params, feats)
     add_constraints(fm, feats, params)
+
+    setattr(fm, "uvl_includes", build_uvl_includes(params))
+
     return fm
