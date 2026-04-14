@@ -470,6 +470,22 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         feat, attr, _ = random.choices(original_pool, weights=weights, k=1)[0]
         return [(feat, attr)]
 
+    def filter_len_groups_for_numeric_use(
+        len_groups: dict[str, list[str]],
+        len_prob: float,
+    ) -> dict[str, list[str]]:
+        filtered: dict[str, list[str]] = {}
+
+        if len_prob <= 0.0:
+            return filtered
+
+        for fid, values in len_groups.items():
+            selected_values = [value for value in values if random.random() < len_prob]
+            if selected_values:
+                filtered[fid] = selected_values
+
+        return filtered
+
     # -----------------------------
     # Params y caps
     # -----------------------------
@@ -649,7 +665,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         return Node(f"{func_name}({args})")
 
     def maybe_wrap_key_with_len(key: str, len_eligible_keys: set[str]) -> str:
-        if key in len_eligible_keys and random.random() < len_prob:
+        if key in len_eligible_keys:
             return f"len({key})"
         return key
 
@@ -783,13 +799,13 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
         bool_groups: dict[str, list[str]],
         num_groups: dict[str, list[str]],
         str_groups: dict[str, list[str]],
-        len_groups: dict[str, list[str]],
+        numeric_len_groups: dict[str, list[str]],
         target_occ: int,
     ) -> Node | None:
         """
         Construye una constraint mezclando predicados booleanos, numéricos y string
         dentro de una misma fórmula lógica.
-        Ejemplo válido: F1 & F2 | (F3.Attr1 < F4)
+        Ejemplo válido: F1 & F2 | (F3.Attr1 < len(F4))
         """
         if target_occ < 1:
             return None
@@ -806,7 +822,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
 
                 if bool_groups and remaining >= 1:
                     available_kinds.append("bool")
-                if (num_groups or len_groups) and remaining >= 2:
+                if (num_groups or numeric_len_groups) and remaining >= 2:
                     available_kinds.append("num")
                 if str_groups and remaining >= 2:
                     available_kinds.append("string")
@@ -835,7 +851,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                     occ = random.randint(2, max_occ)
 
                     merged_num_groups: dict[str, list[str]] = {}
-                    for source in (num_groups, len_groups):
+                    for source in (num_groups, numeric_len_groups):
                         for fid, values in source.items():
                             merged_num_groups.setdefault(fid, []).extend(values)
 
@@ -849,7 +865,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                         break
 
                     len_eligible_keys = set()
-                    for values in len_groups.values():
+                    for values in numeric_len_groups.values():
                         len_eligible_keys.update(values)
 
                     node = build_numeric_predicate(chosen, len_eligible_keys)
@@ -914,6 +930,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             len_pool.extend([f"{f.name}.{a.name}" for f, a in filtered_str_attrs])
 
         len_groups = group_keys_by_feature(list(set(len_pool)))
+        numeric_len_groups = filter_len_groups_for_numeric_use(len_groups, len_prob)
 
         # capacidad aproximada total: suma de capacidades por bucket
         total_capacity = 0
@@ -923,8 +940,8 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             total_capacity += max_occurrences_possible(num_groups)
         if str_groups:
             total_capacity += max_occurrences_possible(str_groups)
-        if len_groups:
-            total_capacity += max_occurrences_possible(len_groups)
+        if numeric_len_groups:
+            total_capacity += max_occurrences_possible(numeric_len_groups)
 
         effective_max = min(max_vars, total_capacity)
         effective_min = min_vars
@@ -938,7 +955,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
             bool_groups,
             num_groups,
             str_groups,
-            len_groups,
+            numeric_len_groups,
             target_occ
         )
         if root is None:
