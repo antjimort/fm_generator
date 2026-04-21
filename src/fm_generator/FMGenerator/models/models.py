@@ -39,13 +39,13 @@ class FmgeneratorModel(VariabilityModel):
 
             if is_model_satisfiable(fm):
                 print(
-                    f"Modelo {index}: satisfacible encontrado en intento {attempt + 1}/"
-                    f"{SATISFIABILITY_MAX_ATTEMPTS}"
+                    f"Modelo {index}: modelo booleanamente satisfacible encontrado en intento "
+                    f"{attempt + 1}/{SATISFIABILITY_MAX_ATTEMPTS}"
                 )
                 return fm
 
         raise RuntimeError(
-            f"No se pudo generar un modelo satisfacible para el índice {index} "
+            f"No se pudo generar un modelo booleanamente satisfacible para el índice {index} "
             f"tras {SATISFIABILITY_MAX_ATTEMPTS} intentos."
         )
 

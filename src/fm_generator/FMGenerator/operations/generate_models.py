@@ -205,6 +205,9 @@ def feature_constraint_bucket(feature: Feature, params: Params) -> str:
     return "bool"
 
 
+def constraints_must_be_boolean_only(params: Params) -> bool:
+    return bool(getattr(params, "ENSURE_SATISFIABLE", False))
+
 def select_relation_types(params: Params, total: int) -> list[str]:
     return random.choices(
         population=['mand', 'opt', 'alt', 'or', 'group'],
@@ -359,7 +362,7 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
     # - Random attributes:
     #   siempre tienen attach_probability fija = 0.3 también para constraints
     RANDOM_ATTR_CONSTRAINT_PROB = 0.8
-
+    boolean_only_constraints = constraints_must_be_boolean_only(params)
     attrs_bool: list[tuple[Feature, Attribute, float]] = []
     attrs_num: list[tuple[Feature, Attribute, float]] = []
     attrs_str: list[tuple[Feature, Attribute, float]] = []
@@ -393,20 +396,22 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                     attr_type = getattr(raw_attr_type, "value", str(raw_attr_type)).lower()
                 else:
                     domain = getattr(attr, "domain", None)
-                    element_list = getattr(domain, "element_list", [])
-                    range_list = getattr(domain, "range_list", [])
+                    elements = getattr(domain, "elements", None) or []
+                    ranges = getattr(domain, "ranges", None) or []
 
-                    if element_list:
+                    if elements:
                         attr_type = "boolean"
-                    elif range_list:
-                        r = range_list[0]
+                    elif ranges:
+                        r = ranges[0]
                         range_min = getattr(r, "min_value", None)
                         range_max = getattr(r, "max_value", None)
 
                         if isinstance(range_min, int) and isinstance(range_max, int):
                             attr_type = "integer"
-                        else:
+                        elif isinstance(range_min, float) or isinstance(range_max, float):
                             attr_type = "real"
+                        else:
+                            attr_type = "string"
                     else:
                         attr_type = "string"
 
@@ -414,6 +419,9 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                 constraint_probability = RANDOM_ATTR_CONSTRAINT_PROB
             else:
                 is_manual_attribute = True
+
+            if boolean_only_constraints:
+                continue
 
             if not use_in_constraints:
                 continue
@@ -441,9 +449,14 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
                     ):
                         attrs_str.append(attr_tuple)
 
-    feats_bool = [f for f in features if feature_constraint_bucket(f, params) == "bool"]
-    feats_num = [f for f in features if feature_constraint_bucket(f, params) == "num"]
-    feats_str = [f for f in features if feature_constraint_bucket(f, params) == "string"]
+    if boolean_only_constraints:
+        feats_bool = [f for f in features if feature_constraint_bucket(f, params) == "bool"]
+        feats_num = []
+        feats_str = []
+    else:
+        feats_bool = [f for f in features if feature_constraint_bucket(f, params) == "bool"]
+        feats_num = [f for f in features if feature_constraint_bucket(f, params) == "num"]
+        feats_str = [f for f in features if feature_constraint_bucket(f, params) == "string"]
 
     def filter_attrs_for_constraint(
         attr_pool: list[tuple[Feature, Attribute, float]]
@@ -925,7 +938,11 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
 
         # Candidatos string que pueden transformarse a len(...)
         len_pool = []
-        if getattr(params, "TYPE_LEVEL", False) and getattr(params, "STRING_CONSTRAINTS", False):
+        if (
+            not boolean_only_constraints
+            and getattr(params, "TYPE_LEVEL", False)
+            and getattr(params, "STRING_CONSTRAINTS", False)
+        ):
             len_pool.extend([f.name for f in feats_str])
             len_pool.extend([f"{f.name}.{a.name}" for f, a in filtered_str_attrs])
 
@@ -951,13 +968,32 @@ def add_constraints(fm: FeatureModel, features: list[Feature], params: Params) -
 
         target_occ = random.randint(effective_min, effective_max)
 
-        root = build_mixed_constraint(
-            bool_groups,
-            num_groups,
-            str_groups,
-            numeric_len_groups,
-            target_occ
-        )
+        if boolean_only_constraints:
+            if not bool_groups:
+                continue
+
+            bool_capacity = max_occurrences_possible(bool_groups)
+            effective_max = min(max_vars, bool_capacity)
+            effective_min = min_vars
+
+            if effective_max < effective_min:
+                continue
+
+            target_occ = random.randint(effective_min, effective_max)
+            chosen = sample_keys_with_ecr(bool_groups, target_occ)
+
+            if not chosen:
+                continue
+
+            root = build_boolean_predicate(chosen)
+        else:
+            root = build_mixed_constraint(
+                bool_groups,
+                num_groups,
+                str_groups,
+                numeric_len_groups,
+                target_occ
+            )
         if root is None:
             continue
 
@@ -993,12 +1029,16 @@ SAT_SEED_STRIDE = 100000
 
 def is_model_satisfiable(feature_model: FeatureModel) -> bool:
     """Check satisfiability of an in-memory FM using Flamapy + PySAT."""
-    dm = DiscoverMetamodels()
-    sat_model = dm.use_transformation_m2m(feature_model, "pysat")
-    operation = dm.get_operation(sat_model, "PySATSatisfiable")
-    operation.execute(sat_model)
-    result = operation.get_result()
-    return bool(result)
+    try:
+        dm = DiscoverMetamodels()
+        sat_model = dm.use_transformation_m2m(feature_model, "pysat")
+        operation = dm.get_operation(sat_model, "PySATSatisfiable")
+        operation.execute(sat_model)
+        result = operation.get_result()
+        return bool(result)
+    except Exception as exc:
+        print(f"[SAT ERROR] PySAT satisfiability check failed: {exc}")
+        return False
 
 
 def generate_single_model(params: Params, index: int, attempt: int = 0) -> FeatureModel:

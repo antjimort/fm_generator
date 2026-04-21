@@ -222,3 +222,12 @@ class Params:
                     raise ValueError(
                         f"[ERROR] La probabilidad de aparición del atributo en la posición {i} debe estar entre 0 y 1. Valor recibido: {p}"
                     )
+        
+        if self.ENSURE_SATISFIABLE:
+            # PySAT solo soporta constraints booleanas puras sobre features booleanas.
+            # Por tanto, aunque el árbol pueda seguir teniendo tipos y atributos,
+            # las constraints no usarán elementos no booleanos.
+            self.CTC_DIST_NUMERIC = 0.0
+            self.CTC_DIST_AGGREGATE = 0.0
+            self.CTC_DIST_STRING = 0.0
+            self.CTC_DIST_BOOLEAN = 1.0
