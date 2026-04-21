@@ -18,6 +18,26 @@ def prepend_uvl_includes(serialized_model: str, includes: list[str]) -> str:
     include_block = "include\n" + "\n".join(f"\t{inc}" for inc in includes) + "\n"
     return include_block + serialized_model
 
+def build_output_filename(fm: FeatureModel, index: int, params: Params) -> str:
+    base_name = (params.NAME_PREFIX or "").strip()
+
+    if not base_name:
+        base_name = "fm"
+
+    parts = [base_name]
+
+    if params.NUM_MODELS > 1:
+        parts.append(str(index))
+
+    if getattr(params, "INCLUDE_FEATURE_COUNT_SUFFIX", False):
+        num_features = len(fm.get_features())
+        parts.append(f"N{num_features}")
+
+    if getattr(params, "INCLUDE_CONSTRAINT_COUNT_SUFFIX", False):
+        num_constraints = len(getattr(fm, "ctcs", []))
+        parts.append(f"C{num_constraints}")
+
+    return "_".join(parts) + ".uvl"
 
 class FmgeneratorModel(VariabilityModel):
     @staticmethod
@@ -55,7 +75,8 @@ class FmgeneratorModel(VariabilityModel):
         fms = [self._generate_one_model(i) for i in range(self.params.NUM_MODELS)]
 
         for i in range(len(fms)):
-            output_file = Path(os.path.join(output_dir, f"{self.params.NAME_PREFIX}{i}.uvl"))
+            filename = build_output_filename(fms[i], i, self.params)
+            output_file = Path(os.path.join(output_dir, filename))
 
             serialized_model = UVLWriter(None, fms[i]).transform()
             serialized_model = prepend_uvl_includes(
